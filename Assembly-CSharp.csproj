@@ -60,10 +60,17 @@
     <Compile Include="Assets\Scripts\StartScreenHandler.cs" />
     <Compile Include="Assets\Inputs\UserInput.cs" />
     <Compile Include="Assets\Scripts\Globals.cs" />
+    <Compile Include="Assets\UI\UI_Operations.cs" />
     <Compile Include="Assets\Scripts\_GUI.cs" />
     <Compile Include="Assets\Scripts\QuitHandler.cs" />
+    <Compile Include="Assets\UI\UI_HelpFunction.cs" />
     <Compile Include="Assets\Scripts\CameraControl.cs" />
     <Compile Include="Assets\Scripts\InputManager.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\UI\Operations.uxml" />
+    <None Include="Assets\UI\HelpFunction.uxml" />
+    <None Include="Assets\UI\Operations.uss" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
