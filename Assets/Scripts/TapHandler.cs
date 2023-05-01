@@ -6,6 +6,7 @@ using UnityEngine.InputSystem.LowLevel;
 using System.Diagnostics;
 using Debug = UnityEngine.Debug;
 using UnityEngine.UIElements;
+using UnityEngine.Windows;
 
 
 public class TapHandler : MonoBehaviour
@@ -13,6 +14,8 @@ public class TapHandler : MonoBehaviour
     /// ===============================================================
     /// ========================== CONSTANTS ========================== 
     private const string NONE = "none";
+
+    private const string ERR_SELECT = "No description for obnject selected";
 
     /// ===============================================================
     /// ==================== Serialized variables ===================== 
@@ -29,8 +32,11 @@ public class TapHandler : MonoBehaviour
     [Tooltip("Highlight effect shaders for the Can Be Tapped objects when selected")]
     [SerializeField] List<Shader> highlightShaders = new List<Shader>();
 
-
+    [Tooltip("List of voiceovers, corresponds to each mesh")]
     [SerializeField] List<AudioClip> voiceOvers = new List<AudioClip>();
+
+    [Tooltip("List of text that will be displayed as the descrption")]
+    [SerializeField] List<string> descriptions = new List<string>();
 
     [Space(15)]
     [Header("Opacity control")]
@@ -43,6 +49,23 @@ public class TapHandler : MonoBehaviour
     [Tooltip("Opacity of the objects that are not selected.")]
     [Range(0f, 1f)]
     [SerializeField] public float unselectedOpacity = 1.0f;
+
+
+    /// ===================== UI precautionary ======================== 
+    [Space(15)]
+    [Header("UI Precautionary")]
+    [Space(5)]
+
+    [Help("Since UI will take space on the screen, tap select/unselect " +
+        "will interfere with the UI. This section is to deal with the effect " +
+        "UI has on camera and its touch control.")]
+    [Space(5)]
+
+    [Tooltip("Part of top and bottom screen becomes unresponsive when UIs are active")]
+    [SerializeField] Vector2 topBottomNullArea = Vector2.zero;
+
+    [Tooltip("Part of left and right screen becomes unresponsive when UIs are active")]
+    [SerializeField] Vector2 leftRightNullArea = Vector2.zero;
 
     /// ===============================================================
     /// ======================= Input actions =========================
@@ -62,6 +85,10 @@ public class TapHandler : MonoBehaviour
 
     // For counting time between taps
     private Stopwatch tapStopwatch = new Stopwatch();
+
+    // UI interference 
+    // Top, bottom, left, right, as defined in Globals
+    List<bool> areaProtected = new List<bool>() { false, false, false, false };
 
     public void Initialize(InputAction PT)
     {
@@ -83,16 +110,16 @@ public class TapHandler : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
-        string nameOfTapped = TapResponse(); 
-
+        string nameOfTapped = TapResponse();
+        
         if (nameOfTapped != null)
         {
-            // If a valid onject is selected, alter its (or others') shader(s)
+            // If a valid object is selected, alter its (or others') shader(s)
             AlterTapped(nameOfTapped); 
         }
-        if(nameOfTapped == NONE)
+        if (nameOfTapped == NONE)
         {
+            if (!ValidInput()) return;
             // If tapped outside of objects, resets all effects 
             ResetAllShaders();
         }
@@ -101,11 +128,200 @@ public class TapHandler : MonoBehaviour
 
     }
 
+    /// ===============================================================
+    /// ======================== Public Methods =======================
+    /// ===============================================================
+
+    /// <summary>
+    /// Check is there are any items currently being selected.
+    /// </summary>
+    /// <returns>True if something is selected</returns>
+    public bool HasSelected()
+    {
+        return selected.Contains(true);
+    }
+
+
+    /// <summary>
+    /// Disable top area's touch control
+    /// </summary>
+    public void ProtectTopArea()
+    {
+        areaProtected[(int)Globals.Side.Top] = true;
+    }
+
+    /// <summary>
+    /// Enable top area's touch control
+    /// </summary>
+    public void FreeTopArea()
+    {
+        areaProtected[(int)Globals.Side.Top] = false;
+    }
+
+    /// <summary>
+    /// Disable bottom area's touch control
+    /// </summary>
+    public void ProtectBottomArea()
+    {
+        areaProtected[(int)Globals.Side.Bottom] = true;
+    }
+
+    /// <summary>
+    /// Enable bottom area's touch control
+    /// </summary>
+    public void FreeBottomArea()
+    {
+        areaProtected[(int)Globals.Side.Bottom] = false;
+    }
+
+    /// <summary>
+    /// Disable left area's touch control
+    /// </summary>
+    public void ProtectLeftArea()
+    {
+        areaProtected[(int)Globals.Side.Left] = true;
+    }
+
+    /// <summary>
+    /// Enable left area's touch control
+    /// </summary>
+    public void FreeLeftArea()
+    {
+        areaProtected[(int)Globals.Side.Left] = false;
+    }
+
+    /// <summary>
+    /// Disable right area's touch control
+    /// </summary>
+    public void ProtectRightArea()
+    {
+        areaProtected[(int)Globals.Side.Right] = true;
+    }
+
+    /// <summary>
+    /// Enable right area's touch control
+    /// </summary>
+    public void FreeRightArea()
+    {
+        areaProtected[(int)Globals.Side.Right] = false;
+    }
+
+    /// <summary>
+    /// Unselect all objects and thus void the selection. 
+    /// </summary>
+    public void UnselectAll()
+    {
+        for (int i = 0; i < canBeTapped.Count; i++)
+        {
+            selected[i] = false;
+        }
+    }
+
+    /// <summary>
+    /// Alter the opacity of the selected objects.
+    /// </summary>
+    /// <param name="opacity">Target opacity, value between 0 to 1</param>
+    public void SetSelectedOpacity(float opacity)
+    {
+        selectedOpacity = opacity; 
+    }
+
+    /// <summary>
+    /// Alter the opacity of objects that are not selected
+    /// </summary>
+    /// <param name="opacity">Target opacity, value between 0 to 1</param>
+    public void SetUnselectedOpacity(float opacity)
+    {
+        unselectedOpacity = opacity;
+    }
+
+    /// <summary>
+    /// Change the rim color of the selected highlight effect.
+    /// </summary>
+    /// <param name="input">Target color</param>
+    public void SetRimColor(Color input)
+    {
+        for(int i = 0; i < canBeTapped.Count; i++)
+        {
+            if (selected[i])
+                canBeTapped[i].GetComponent<Renderer>().material.SetColor("_RimLight", input);
+        }
+    }
+
+    /// <summary>
+    /// Change the fill color of the selected highlight effect.
+    /// </summary>
+    /// <param name="input">Target color</param>
+    public void SetFillColor(Color input)
+    {
+        for (int i = 0; i < canBeTapped.Count; i++)
+        {
+            if (selected[i])
+                canBeTapped[i].GetComponent<Renderer>().material.SetColor("_FillLight", input);
+        }
+    }
+
+    /// <summary>
+    /// Get the text description of the selected object.
+    /// If multiple objects are selected, reutrn the first one on the list. 
+    /// If selected object has no description, return error message.
+    /// </summary>
+    /// <returns>Text description of the selected</returns>
+    public string GetTextDescription()
+    {
+
+        for (int i = 0; i < selected.Count; i++)
+        {
+            if (selected[i] && descriptions[i].Length > 0)
+                return descriptions[i];
+        }
+        
+        return ERR_SELECT;
+    }
+
+    /// <summary>
+    /// Get the name of the selected object.
+    /// When multiple objects are selected, return the first one on the list.
+    /// </summary>
+    /// <returns>Title name of the selected</returns>
+    public string GetTitle()
+    {
+        for (int i = 0; i < selected.Count; i++)
+        {
+            if (selected[i])
+                return canBeTapped[i].name;
+        }
+
+        return ERR_SELECT;
+    }
+
+    /// <summary>
+    /// Get the voiceover audio of the selected object.
+    /// When multiple objects are selected, return the first one on the list.
+    /// </summary>
+    /// <returns>Voiceover audio clip of the selected</returns>
+    public AudioClip GetVoiceOver()
+    {
+        for (int i = 0; i < selected.Count; i++)
+        {
+            if (selected[i])
+                return voiceOvers[i];
+        }
+
+        return null;
+    }
+
+    /// ===============================================================
+    /// ======================= Private Methods =======================
+    /// ===============================================================
+
+
     /// <summary>
     /// Try to find which object is selected when detecting a tap. 
     /// </summary>
     private string TapResponse()
     {
+
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
         string nameOfTapped = null;
 
@@ -148,8 +364,11 @@ public class TapHandler : MonoBehaviour
     /// <param name="nameOfTapped">String name of the tapped obj</param>
     private void AlterTapped(string nameOfTapped)
     {
+        if (!ValidInput()) return;
+
+        
         // Iterate throught the objects that can be tap selected 
-        for(int i = 0; i < canBeTapped.Count; i++)
+        for (int i = 0; i < canBeTapped.Count; i++)
         {
             MeshFilter mesh = canBeTapped[i].GetComponent<MeshFilter>();
 
@@ -180,6 +399,8 @@ public class TapHandler : MonoBehaviour
     /// </summary>
     private void ResetAllShaders()
     {
+        if (!ValidInput()) return;
+
         for (int i = 0; i < canBeTapped.Count; i++)
         {
             Renderer rend = canBeTapped[i].GetComponent<Renderer>();
@@ -209,7 +430,9 @@ public class TapHandler : MonoBehaviour
         }
     }
 
-
+    /// <summary>
+    /// Update the opacity of selected or unselected objects.
+    /// </summary>
     private void UpdateOpacity()
     {
         // If nothing is selected, then skip this update
@@ -234,10 +457,28 @@ public class TapHandler : MonoBehaviour
 
     }
 
-
-    private void PlayAudio()
+    /// <summary>
+    /// Given an input position, check with active areas to see if its position is valid.
+    /// </summary>
+    /// <param name="position">Vec2 position in screen space</param>
+    /// <returns>True if the position is in active area</returns>
+    private bool ValidInput()
     {
+        // Assume the interval between the caller function and this funtion is so small
+        // that the touch position does not change (or small enough to neglect)
+        TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
+        Vector2 position = new Vector2(currentTouchF1.position.x, currentTouchF1.position.y);
 
+        // If there is no deactivated area, return true
+        if (!areaProtected.Contains(false)) return true;
+
+        return (areaProtected[(int)Globals.Side.Right] ? position.x < leftRightNullArea.y : true) // Beyond right side 
+            && (areaProtected[(int)Globals.Side.Left] ? position.x > leftRightNullArea.x : true) // Beyond left side
+            && (areaProtected[(int)Globals.Side.Bottom] ? position.y > topBottomNullArea.y : true) // Beyond bottom side
+            && (areaProtected[(int)Globals.Side.Top] ? position.y < topBottomNullArea.x : true);// Beyond top side
+        
     }
+
+    
 
 }

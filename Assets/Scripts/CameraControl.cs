@@ -12,6 +12,7 @@ using Debug = UnityEngine.Debug;
 using System;
 using UnityEngine.UIElements;
 
+
 public class CameraControl : MonoBehaviour
 {
     /// ===============================================================
@@ -40,6 +41,9 @@ public class CameraControl : MonoBehaviour
     [Space(5)]
 
     [SerializeField] private Camera thisCamera;
+
+
+    /// ======================= Basic operation =======================   
 
     [Header("Basic operation")]
     [Space(5)]
@@ -72,6 +76,8 @@ public class CameraControl : MonoBehaviour
     [Tooltip("The default rotation, dicates the viewing angle")]
     [SerializeField] private Vector3 defaultRotation = Vector3.zero;
 
+    /// =========================== Look-at ===========================  
+
     [Space(15)]
     [Header("Look at object")]
     [Space(5)]
@@ -81,6 +87,10 @@ public class CameraControl : MonoBehaviour
 
     [Tooltip("Enable this will make the camera rotate around am object or a point")]
     [SerializeField] private bool lockOnTarget = false;
+
+    [Tooltip("Offset the camera by a certain height to bring better visibility")]
+    [Range(-10f, 10f)]
+    [SerializeField] private float targetHeightOffset = 2f; 
 
     [Tooltip("When locked on target, this indicates how far the camera is sway at the start")]
     [Range(0, 100)]
@@ -96,8 +106,10 @@ public class CameraControl : MonoBehaviour
 
     [Tooltip("Making the rotate sensitivity change accroding to distance to the subject.")]
     [Range(-10, 10)]
-    [SerializeField] private float distanceSensityCoef = .1f; 
+    [SerializeField] private float distanceSensityCoef = .1f;
 
+
+    /// ======================== Touch Control ========================  
     [Space(15)]
     [Header("Touch Control")]
     [Space(5)]
@@ -119,6 +131,7 @@ public class CameraControl : MonoBehaviour
     [Range(0, 20)]
     [SerializeField] private float pinchActivationValue = 1f;
 
+    /// =========================== Animation ========================= 
     [Space(15)]
     [Header("Self Animation")]
     [Space(5)]
@@ -147,7 +160,24 @@ public class CameraControl : MonoBehaviour
 
     [Tooltip("The accleration of self animation")]
     [Range(0f, 20f)]
-    [SerializeField] private float selfAnimationAcclerate = 5f; 
+    [SerializeField] private float selfAnimationAcclerate = 5f;
+
+
+    /// ===================== UI precautionary ======================== 
+    [Space(15)]
+    [Header("UI Precautionary")]
+    [Space(5)]
+
+    [Help("Since UI will take space on the screen, camera touch control " +
+        "will interfere with the UI. The values below will mark certain " + 
+        "areas on screen no longer responsive to touch once UI shows up")]
+    [Space(5)]
+
+    [Tooltip("Part of top and bottom screen becomes unresponsive when UIs are active")]
+    [SerializeField] Vector2 topBottomNullArea = Vector2.zero;
+
+    [Tooltip("Part of left and right screen becomes unresponsive when UIs are active")]
+    [SerializeField] Vector2 leftRightNullArea = Vector2.zero;
 
     /// ===============================================================
     /// ============================= Inputs ========================== 
@@ -164,7 +194,8 @@ public class CameraControl : MonoBehaviour
     /// ===============================================================
     /// ======================== Stat variables =======================
 
-    private Vector3 lookAtPosition = Vector3.zero; // Can be swapped for the subject
+    private Vector3 lookAtPosition = Vector3.zero;  // Can be swapped for the subject
+    private Vector3 lookAtPosOffset = Vector3.zero; // Offset of the look at position height  
 
     private Vector2 lastDelta = new Vector2();
     private Vector2 deltaMinValue = new Vector2(.02f, .02f); // Lower than this value stops the momentum 
@@ -177,20 +208,9 @@ public class CameraControl : MonoBehaviour
     private float lastFingerDist = 0;
     private Vector2 lastFingerAverage = new Vector2();
 
-    private bool touchPinchFlag = false;
-    private bool touchPanFlag = false;  
-
-    private List<UnityEngine.InputSystem.TouchPhase> deactivatedStats = new List<UnityEngine.InputSystem.TouchPhase>()
-    {
-        UnityEngine.InputSystem.TouchPhase.Canceled,
-        UnityEngine.InputSystem.TouchPhase.Ended,
-        UnityEngine.InputSystem.TouchPhase.None
-    };
-    private List<UnityEngine.InputSystem.TouchPhase> activateStates = new List<UnityEngine.InputSystem.TouchPhase>() {
-        UnityEngine.InputSystem.TouchPhase.Began,
-        UnityEngine.InputSystem.TouchPhase.Moved,
-        UnityEngine.InputSystem.TouchPhase.Stationary
-    }; 
+    private bool touchPinchFlag = false; // Flag this true if pinch is detected 
+    private bool touchPanFlag = false;   // Flag this true if pan is detected 
+     
 
     // Monitoring the double click/tap event 
     private Stopwatch doubleClickSW = new Stopwatch();
@@ -205,8 +225,11 @@ public class CameraControl : MonoBehaviour
 
     // Self-animation
     private float currentSelfAnimeSpeed = 0;
+    private bool disableSelfIdleAnim = false;
 
-    
+    // UI interference 
+    // Top, bottom, left, right, as defined in Globals
+    List<bool> areaProtected = new List<bool>() { false, false, false, false };
 
     /// ===============================================================
     /// =========================== Methods =========================== 
@@ -236,6 +259,8 @@ public class CameraControl : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        lookAtPosOffset = new Vector3(0, targetHeightOffset, 0);
+
         if (USE_START_ANIMATION)
         {
             targetDistance = minimumDistance;
@@ -246,7 +271,7 @@ public class CameraControl : MonoBehaviour
         }
 
         // Keep the camera looking at the subject/location 
-        thisCamera.transform.LookAt(lookAtPosition, Vector3.up);
+        thisCamera.transform.LookAt(lookAtPosition + lookAtPosOffset, Vector3.up);
 
         RegulateDistance();
 
@@ -281,6 +306,40 @@ public class CameraControl : MonoBehaviour
         }
 
     }
+
+    /// <summary>
+    /// Enable or disable camera self rotate animation
+    /// </summary>
+    /// <param name="value">Bool flag of the state</param>
+    public void ToggleAutoRotate(bool value)
+    {
+        disableSelfIdleAnim = value;
+    }
+
+    public void ProtectRightArea()
+    {
+        areaProtected[(int)Globals.Side.Right] = true;
+    }
+
+    public void FreeRightArea()
+    {
+        areaProtected[(int)Globals.Side.Right] = false;
+
+    }
+
+    /// <summary>
+    /// Provide the current camera state for other classes to reference. 
+    /// </summary>
+    /// <returns>Current cameraState</returns>
+    public Globals.CameraState GetCameraState()
+    {
+        return cameraState; 
+    }
+
+    /// ===============================================================
+    /// ======================= Private Methods ======================= 
+    /// ===============================================================
+
 
     /// <summary>
     /// Update method when camera is not looking at an object, it pans and tilts freely.
@@ -362,7 +421,7 @@ public class CameraControl : MonoBehaviour
         }
 
         // Keep the camera looking at the subject/location 
-        thisCamera.transform.LookAt(lookAtPosition, Vector3.up);
+        thisCamera.transform.LookAt(lookAtPosition + lookAtPosOffset, Vector3.up);
 
         RegulateDistance();
 
@@ -435,13 +494,14 @@ public class CameraControl : MonoBehaviour
 
         // =====================================================================================
         // ================================= Single finger operation ===========================
+        if (!ValidInput()) return;
         if (currentTouchF1.phase == UnityEngine.InputSystem.TouchPhase.Began) 
         {
             // The start of a rotation clears previsou data 
             lastPositionF1 = touchPosF1;
         }
         else if (currentTouchF1.phase == UnityEngine.InputSystem.TouchPhase.Moved &&
-            deactivatedStats.Contains(currentTouchF2.phase))
+            Globals.deactivatedStats.Contains(currentTouchF2.phase))
         {
             // During a camera rotation operation, first calculates delta 
             singleFingerDelta = lastPositionF1 - touchPosF1;
@@ -453,7 +513,7 @@ public class CameraControl : MonoBehaviour
                 Space.Self);
 
             // Keep the camera looking at the subject/location 
-            thisCamera.transform.LookAt(lookAtPosition, Vector3.up);
+            thisCamera.transform.LookAt(lookAtPosition + lookAtPosOffset, Vector3.up);
 
             // Records the most recent non-zero single finger rotateion delta 
             if (Vector2.SqrMagnitude(singleFingerDelta) > 0)
@@ -461,7 +521,7 @@ public class CameraControl : MonoBehaviour
         }
         else
         {
-            if( enableMomentum)
+            if( enableMomentum) // Let the model keep rotating a bit 
             {
                 // Decrease delta 
                 lastDelta *= rotateFallOff; 
@@ -541,7 +601,7 @@ public class CameraControl : MonoBehaviour
         if (targetDistance > maximumDistance) targetDistance = maximumDistance;
 
         // Relocate the camera so that the distance stays the same 
-        float currentDistance = Vector3.Distance(thisCamera.transform.position, lookAtPosition);
+        float currentDistance = Vector3.Distance(thisCamera.transform.position, lookAtPosition + lookAtPosOffset);
         float difference = currentDistance - targetDistance;
         Vector3 offset = thisCamera.transform.forward.normalized * difference;
         thisCamera.transform.Translate(offset, Space.World);
@@ -586,7 +646,8 @@ public class CameraControl : MonoBehaviour
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
         TouchState currentTouchF2 = touchSecondary.ReadValue<TouchState>();
 
-        if (activateStates.Contains(currentTouchF1.phase) || activateStates.Contains(currentTouchF2.phase))
+        if (Globals.activateStates.Contains(currentTouchF1.phase) ||
+            Globals.activateStates.Contains(currentTouchF2.phase))
         {
             interaction = true;
             cameraStateSW.Restart();
@@ -608,6 +669,9 @@ public class CameraControl : MonoBehaviour
     /// </summary>
     private void UpdateSelfAnimation()
     {
+        // If self idle rotation animation is disabled, then skip this 
+        if (disableSelfIdleAnim) return;
+
         if (cameraState == Globals.CameraState.Idle)
         {
             currentSelfAnimeSpeed += Time.deltaTime * selfAnimationAcclerate;
@@ -649,7 +713,7 @@ public class CameraControl : MonoBehaviour
             thisCamera.transform.Translate(new Vector3(currentRotateStep, 0, 0), Space.Self);
 
             // Keep the camera looking at the subject/location 
-            thisCamera.transform.LookAt(lookAtPosition, Vector3.up);
+            thisCamera.transform.LookAt(lookAtPosition + lookAtPosOffset, Vector3.up);
 
             RegulateDistance();
         }
@@ -678,6 +742,32 @@ public class CameraControl : MonoBehaviour
     }
 
     /// <summary>
+    /// Given an input position, check with active areas to see if its position is valid.
+    /// </summary>
+    /// <param name="position">Vec2 position in screen space</param>
+    /// <returns>True if the position is in active area</returns>
+    private bool ValidInput()
+    {
+        // Assume the interval between the caller function and this funtion is so small
+        // that the touch position does not change (or small enough to neglect)
+        TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
+        Vector2 position = new Vector2(currentTouchF1.position.x, currentTouchF1.position.y);
+
+        // If there is no deactivated area, return true
+        if (!areaProtected.Contains(false)) return true;
+
+        return (areaProtected[(int)Globals.Side.Right] ? position.x < leftRightNullArea.y : true) // Beyond right side 
+            && (areaProtected[(int)Globals.Side.Left] ? position.x > leftRightNullArea.x : true) // Beyond left side
+            && (areaProtected[(int)Globals.Side.Bottom] ? position.y > topBottomNullArea.y : true) // Beyond bottom side
+            && (areaProtected[(int)Globals.Side.Top] ? position.y < topBottomNullArea.x : true);// Beyond top side
+        ;
+    }
+
+    /// ===============================================================
+    /// ======================= Utility Methods =======================
+    /// ===============================================================
+
+    /// <summary>
     /// Guass function to calculate the speed at a given point.
     /// </summary>
     /// <param name="input"></param>
@@ -687,6 +777,6 @@ public class CameraControl : MonoBehaviour
         return Mathf.Exp(-Mathf.Pow(input, SPEED_FUNCTION_POW));
     }
 
-
+    
 }
 

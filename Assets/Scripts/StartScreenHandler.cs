@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Debug = UnityEngine.Debug;
 using UnityEngine;
 
 
@@ -11,14 +12,16 @@ public class StartScreenHandler : MonoBehaviour
 {
     [SerializeField] private UnityEngine.UI.Image startUpImage;
 
+    [Tooltip("Time in milisecond of which the start screen remains constant")]
+    [SerializeField] private long startUpImageConst = 500;
+
+    [Tooltip("Time in milisecond of whcih the start screen fades away")]
+    [SerializeField] private long startUpImageFade = 1000;
 
     // Startup image
     private Stopwatch startUpImageSW = new Stopwatch();
     private bool startUpImageDone = false;
-    private long startUpImageConst = 2500;
-    private long startUpImageFade = 2000;
-
-
+    
     // Start is called before the first frame update
     void Start()
     {
