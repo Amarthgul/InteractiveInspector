@@ -478,11 +478,15 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 4bd0ce1edcb29ba478318399ccd9c0a1, type: 3}
   - {fileID: 8300000, guid: 4bd0ce1edcb29ba478318399ccd9c0a1, type: 3}
   descriptions:
-  - AAAAAAAAAAAAAAAAA
-  - BBBBBBBBBBBBBBBBBBBBB
-  - CCCCCCCCCCCCCCC
-  - DDDDDDDDDDDDDD
-  - EEEEEEEEEEEEEE
+  - The orbits are bony structures of the skull that house the globe, extraocular
+    muscles, nerves, blood vessels, lacrimal apparatus, and adipose tissue.
+  - The frontal bone is a shell-shaped, unpaired, flat bone of the skull located
+    in the forehead region.
+  - The anatomy of the monkey nasal cavity is similar to that of humans and rats.
+  - The parietal bones are bilateral skull bones that form the superior and lateral
+    walls of the cranium.
+  - The parietal bones are bilateral skull bones that form the superior and lateral
+    walls of the cranium.
   selectedOpacity: 1
   unselectedOpacity: 1
   topBottomNullArea: {x: 0, y: 256}
@@ -1097,7 +1101,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
+  near clip plane: 0.1
   far clip plane: 1000
   field of view: 30
   orthographic: 0
@@ -1158,6 +1162,7 @@ MonoBehaviour:
   selfAnimationAcclerate: 1
   topBottomNullArea: {x: 0, y: 0}
   leftRightNullArea: {x: 0, y: 1848}
+  decoupleSliderOverdraft: 1
 --- !u!114 &1390222730
 MonoBehaviour:
   m_ObjectHideFlags: 0
