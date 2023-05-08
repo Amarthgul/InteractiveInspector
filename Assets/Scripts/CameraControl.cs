@@ -11,7 +11,7 @@ using System.Linq;
 using Debug = UnityEngine.Debug;
 using System;
 using UnityEngine.UIElements;
-
+using System.Runtime; // Where does all these unused packages come from? 
 
 public class CameraControl : MonoBehaviour
 {
@@ -179,6 +179,11 @@ public class CameraControl : MonoBehaviour
     [Tooltip("Part of left and right screen becomes unresponsive when UIs are active")]
     [SerializeField] Vector2 leftRightNullArea = Vector2.zero;
 
+    [Tooltip("When using the slider in UI, it is possible to drastically rotate the mdoel " +
+        "when finger goes outside of the UI area. Enable this option to nullify rotate when " +
+        "operating the slider or the color picker")]
+    [SerializeField] bool decoupleSliderOverdraft = true; 
+
     /// ===============================================================
     /// ============================= Inputs ========================== 
     private InputAction mouseLMB;
@@ -200,11 +205,13 @@ public class CameraControl : MonoBehaviour
     private Vector2 lastDelta = new Vector2();
     private Vector2 deltaMinValue = new Vector2(.02f, .02f); // Lower than this value stops the momentum 
 
+    // Current set distance between the camera and the target object 
     private float targetDistance;
 
     private Vector2 lastPositionF1;
     private Vector2 lastPositionF2;
 
+    // For 3 finger pinch or pan
     private float lastFingerDist = 0;
     private Vector2 lastFingerAverage = new Vector2();
 
@@ -230,6 +237,10 @@ public class CameraControl : MonoBehaviour
     // UI interference 
     // Top, bottom, left, right, as defined in Globals
     List<bool> areaProtected = new List<bool>() { false, false, false, false };
+
+    // If the current touch started in an protected area, used to decide
+    // whether or not to rotate the camera. 
+    private bool touchStartedInProtected = false;
 
     /// ===============================================================
     /// =========================== Methods =========================== 
@@ -494,15 +505,22 @@ public class CameraControl : MonoBehaviour
 
         // =====================================================================================
         // ================================= Single finger operation ===========================
-        if (!ValidInput()) return;
         if (currentTouchF1.phase == UnityEngine.InputSystem.TouchPhase.Began) 
         {
             // The start of a rotation clears previsou data 
             lastPositionF1 = touchPosF1;
+
+            // See if this touch started in the UI area 
+            touchStartedInProtected = currentTouchF1.position.x > leftRightNullArea.y 
+                && areaProtected[(int)Globals.Side.Right]; 
         }
         else if (currentTouchF1.phase == UnityEngine.InputSystem.TouchPhase.Moved &&
             Globals.deactivatedStats.Contains(currentTouchF2.phase))
         {
+            // If the touch is within the protected UI area or that the touch started
+            // in the slider/picker area, then do not rotate the camera, quit directly.
+            if (!ValidInput() || touchStartedInProtected) return;
+
             // During a camera rotation operation, first calculates delta 
             singleFingerDelta = lastPositionF1 - touchPosF1;
 
@@ -541,6 +559,7 @@ public class CameraControl : MonoBehaviour
             }
         }
 
+        // Update all the last stats to current stats 
         lastPositionF1 = touchPosF1;
         lastFingerDist = fingerDist;
         lastFingerAverage = fingerAverage; 

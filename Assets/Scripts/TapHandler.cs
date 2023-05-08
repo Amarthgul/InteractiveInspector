@@ -26,17 +26,17 @@ public class TapHandler : MonoBehaviour
     [Tooltip("Objects in the list below can be tapped and highlighted")]
     [SerializeField] List<GameObject> canBeTapped = new List<GameObject>();
 
-    [Tooltip("Default Shaders for the Can Be Tapped objects")]
-    [SerializeField] List<Shader> defaultShaders = new List<Shader>();
-
-    [Tooltip("Highlight effect shaders for the Can Be Tapped objects when selected")]
-    [SerializeField] List<Shader> highlightShaders = new List<Shader>();
-
     [Tooltip("List of voiceovers, corresponds to each mesh")]
     [SerializeField] List<AudioClip> voiceOvers = new List<AudioClip>();
 
     [Tooltip("List of text that will be displayed as the descrption")]
     [SerializeField] List<string> descriptions = new List<string>();
+
+    [Tooltip("Default Shaders for the Can Be Tapped objects")]
+    [SerializeField] List<Shader> defaultShaders = new List<Shader>();
+
+    [Tooltip("Highlight effect shaders for the Can Be Tapped objects when selected")]
+    [SerializeField] List<Shader> highlightShaders = new List<Shader>();
 
     [Space(15)]
     [Header("Opacity control")]
