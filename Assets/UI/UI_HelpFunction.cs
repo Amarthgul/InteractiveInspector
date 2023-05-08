@@ -19,6 +19,10 @@ public class UI_HelpFunction : MonoBehaviour
 
     private const float PINCH_ICON_POS = 50;
 
+    private const int INSTRUCTION_GB_TOP = 260;
+
+    private const int INSTRUCTION_GB_HEIGHT = 1024; 
+
     /// ===============================================================
     /// ==================== Serialized variables =====================
 
@@ -143,6 +147,10 @@ public class UI_HelpFunction : MonoBehaviour
 
     private bool helpPanelTransitioning = false;
 
+    private int lastTapCount = 0; 
+    private Stopwatch tapProtectionSW = new Stopwatch();
+    private int tapProtectionPeriod = 1200;    // Time in milisecond that ignores tapping 
+
     private Stopwatch progressionSW = new Stopwatch();
 
     private Globals.CameraState lastCameraState; 
@@ -186,7 +194,8 @@ public class UI_HelpFunction : MonoBehaviour
         arrowBottomSprite.style.opacity = 0;
         arrowTopSprite.style.opacity = 0;
 
-        helpInstructionsGB.style.opacity = 0; 
+        helpInstructionsGB.style.opacity = 0;
+        helpInstructionsGB.style.top = INSTRUCTION_GB_TOP; 
         rotText.text = rotDescription;
         panText.text = panDescription;
         zoomText.text = zoomDescription;
@@ -537,6 +546,7 @@ public class UI_HelpFunction : MonoBehaviour
     {
         if(helpPanelTransitioning)
         {
+            // Fade in the help instruction panel
             if (helpButtonSelected)
             {
                 float progression = progressionSW.ElapsedMilliseconds / (fadeTime * Globals.MILISECOND_IN_SEC);
@@ -547,9 +557,11 @@ public class UI_HelpFunction : MonoBehaviour
                 if (opacity >= (maxOpacity - opacityThreshold))
                 {
                     helpPanelTransitioning = false;
-                    helpInstructionsGB.style.opacity = maxOpacity; 
+                    helpInstructionsGB.style.opacity = maxOpacity;
+                    tapProtectionSW.Restart(); 
                 }
             }
+            // Fade out the help instruction panel 
             else
             {
                 float progression = progressionSW.ElapsedMilliseconds / (fadeTime * Globals.MILISECOND_IN_SEC);
@@ -564,11 +576,25 @@ public class UI_HelpFunction : MonoBehaviour
                 }
             }
         }
-        
-        if(helpButtonSelected && !helpPanelTransitioning)
-        {
-            // Check for additional touch and toggle off the help instruction 
 
+        // Check for additional touch and toggle off the help instruction if
+        // the tap is outside of the help instruction display area 
+        if (helpButtonSelected && !helpPanelTransitioning 
+            && tapProtectionSW.ElapsedMilliseconds > tapProtectionPeriod)
+        {
+            TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
+
+            if(currentTouchF1.tapCount != lastTapCount)
+            {
+                // Check for tap position 
+                if(currentTouchF1.position.y > INSTRUCTION_GB_TOP + INSTRUCTION_GB_HEIGHT ||
+                    currentTouchF1.position.y < INSTRUCTION_GB_TOP)
+                {
+                    ToggleHelpInstructionDisplay();
+                }
+            }
+
+            lastTapCount = currentTouchF1.tapCount;
         }
 
     }

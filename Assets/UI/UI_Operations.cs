@@ -28,8 +28,8 @@ public class UI_Operations : MonoBehaviour
     // This is purely a magical number obtained by observation.
     // The y position of the dropper circle when translated from world
     // to local has a bias of roughly 90 pixels.
-    // I assume this has something to do with 32 + 64,
-    // it makes no sense but it works so here it is. 
+    // I assume this has something to do with 32 + 64, despite this
+    // combination makes no sense, it works, so here it is. 
     private const int DROPPER_TRANSFORM_OFFSET = 96; 
 
     /// ===============================================================
@@ -84,10 +84,10 @@ public class UI_Operations : MonoBehaviour
     [Tooltip("Color picker panel for selecting color")]
     [SerializeField] private Sprite colorPcikerTexture;
 
-    [Tooltip("Background image for when fill light is selected")]
+    [Tooltip("Background panel image for when fill light is selected")]
     [SerializeField] private Sprite fillSelectedBG;
 
-    [Tooltip("Background image for when rim light is selected")]
+    [Tooltip("Background panel image for when rim light is selected")]
     [SerializeField] private Sprite rimSelectedBG;
 
     [SerializeField] private Color defaultFontColor;
@@ -148,6 +148,10 @@ public class UI_Operations : MonoBehaviour
     private Stopwatch settingTransSW = new Stopwatch();
     private Stopwatch textTransSW = new Stopwatch();
     private Stopwatch rightTransSW = new Stopwatch();
+
+    private bool playSoundPressed = false; // Indicates a session of tint animation 
+    private int playSoundTintTime = 2000;  // Play sound iconis highlighted and slowly change back
+    private Stopwatch playSoundTintSW = new Stopwatch();
 
     private bool isInFillSelect = true; 
 
@@ -539,6 +543,12 @@ public class UI_Operations : MonoBehaviour
 
             RefreshTexts();
 
+            // If auto-play is not disabled, then play the audio once the text panel shows up
+            if (!disableVoiceover) 
+            {
+                ManualPlayAudiop(); 
+            }
+
             activeUI[Globals.UIElements.Text] = true;
             if (!textTransitioning)
             {
@@ -608,6 +618,17 @@ public class UI_Operations : MonoBehaviour
                 TextDescriptionGB.style.left = (int)leftPos;
             }
         }
+
+        // Update the tint color of the play icon 
+        if (playSoundPressed && playSoundTintSW.ElapsedMilliseconds < playSoundTintTime)
+        {
+            // After stopwatch counts beyond playSoundTintTime, calculation stops and thus
+            // does not need to judge whether or not the color goes beyond 1
+            float progression = Sigmoid((float)playSoundTintSW.ElapsedMilliseconds / playSoundTintTime);
+            Color currentColor = progression * Color.white + (1 - progression) * highlightColor;
+
+            playAudioButton.style.unityBackgroundImageTintColor = currentColor;
+        }
     }
 
     /// <summary>
@@ -636,6 +657,13 @@ public class UI_Operations : MonoBehaviour
             AudioSource audio = GetComponent<AudioSource>();
             audio.clip = currentAudio;
             audio.Play();
+
+            // Start a tint color animation session 
+            playSoundPressed  = true;
+            playSoundTintSW.Restart();
+
+            // Change the tint color of the icon to highlight press event 
+            playAudioButton.style.unityBackgroundImageTintColor = highlightColor;
         }
     }
 
