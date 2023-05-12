@@ -193,11 +193,15 @@ public class CameraControl : MonoBehaviour
     private InputAction mouseScroll;
 
     private InputAction touchPrimary;
-    private InputAction touchSecondary;    
+    private InputAction touchSecondary;
 
 
     /// ===============================================================
     /// ======================== Stat variables =======================
+
+    // This variable is hidden from inspector and is designed to be
+    // only accesible via the touch sensitivity slider in UI setting
+    private float globalSensitivityControl = 0; 
 
     private Vector3 lookAtPosition = Vector3.zero;  // Can be swapped for the subject
     private Vector3 lookAtPosOffset = Vector3.zero; // Offset of the look at position height  
@@ -327,15 +331,29 @@ public class CameraControl : MonoBehaviour
         disableSelfIdleAnim = value;
     }
 
+    /// <summary>
+    /// Disable right area's touch control response
+    /// </summary>
     public void ProtectRightArea()
     {
         areaProtected[(int)Globals.Side.Right] = true;
     }
 
+    /// <summary>
+    /// Release right area for touch control 
+    /// </summary>
     public void FreeRightArea()
     {
         areaProtected[(int)Globals.Side.Right] = false;
+    }
 
+    /// <summary>
+    /// Update the touch sensitivity for all touch controls
+    /// </summary>
+    /// <param name="input">Taget sensitivity</param>
+    public void SetTouchSensitivity(float input)
+    {
+        globalSensitivityControl = input;
     }
 
     /// <summary>
@@ -483,7 +501,8 @@ public class CameraControl : MonoBehaviour
 
                 // Detla is a composite of camera up and camera right 
                 Vector3 deltaMovement = (camUp * -fingerAverageDelta.y + camRight * fingerAverageDelta.x)
-                    * Time.deltaTime * cameraPanDamper * touchPanMagnify * (1 + sensitivityMod);
+                    * Time.deltaTime * cameraPanDamper * touchPanMagnify * (1 + sensitivityMod)
+                    * (1 + globalSensitivityControl);
 
                 // Move both camera and lookAtPosition
                 thisCamera.transform.Translate(deltaMovement, Space.World);
@@ -493,7 +512,7 @@ public class CameraControl : MonoBehaviour
             {
                 // 2 finger zoom 
                 targetDistance -= fingerDistDelta * Time.deltaTime * cameraZoomDamper * touchPinchMagnify
-                    * (1 + sensitivityMod);
+                    * (1 + sensitivityMod) * (1 + globalSensitivityControl);
             }
 
         }
@@ -527,7 +546,8 @@ public class CameraControl : MonoBehaviour
             // Apply the delta 
             thisCamera.transform.Translate(
                 new Vector3(singleFingerDelta.x, singleFingerDelta.y, 0) * Time.deltaTime * 
-                cameraRotationDamper * touchRotateMagnify * (1 + sensitivityMod),
+                cameraRotationDamper * touchRotateMagnify * (1 + sensitivityMod)
+                * (1 + globalSensitivityControl),
                 Space.Self);
 
             // Keep the camera looking at the subject/location 
