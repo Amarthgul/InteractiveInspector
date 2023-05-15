@@ -1,5 +1,9 @@
 # Interactive Inspector | iOS
 
+<p align="center">
+	<img src="https://raw.githubusercontent.com/Amarthgul/InteractiveInspector/main/Assets/Resources/Screenshots/CoverVer01.png" width="512">
+</p>
+
 This repo inherits much of the concepts from [this repo](https://github.com/cs-isamiul/Interactive-Anatomy-Visualization-Demo),
 but took a different implemntation and is built for iOS platform. 
 
