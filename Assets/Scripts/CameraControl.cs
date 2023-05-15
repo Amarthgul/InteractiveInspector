@@ -348,6 +348,23 @@ public class CameraControl : MonoBehaviour
     }
 
     /// <summary>
+    /// The setting panel contains a slider, to avoid rotating the model while operating
+    /// the slider, call this method to protect the left area from responding to rotation.
+    /// </summary>
+    public void ProtectLeftArea()
+    {
+        areaProtected[(int)Globals.Side.Left] = true;
+    }
+
+    /// <summary>
+    /// Release left area for touch control 
+    /// </summary>
+    public void FreeLeftArea()
+    {
+        areaProtected[(int)Globals.Side.Left] = false;
+    }
+
+    /// <summary>
     /// Update the touch sensitivity for all touch controls
     /// </summary>
     /// <param name="input">Taget sensitivity</param>
@@ -363,6 +380,14 @@ public class CameraControl : MonoBehaviour
     public Globals.CameraState GetCameraState()
     {
         return cameraState; 
+    }
+
+    /// <summary>
+    /// For external caller to reset the camera. 
+    /// </summary>
+    public void ExternalReset()
+    {
+        RestSettings();
     }
 
     /// ===============================================================
@@ -530,8 +555,10 @@ public class CameraControl : MonoBehaviour
             lastPositionF1 = touchPosF1;
 
             // See if this touch started in the UI area 
-            touchStartedInProtected = currentTouchF1.position.x > leftRightNullArea.y 
-                && areaProtected[(int)Globals.Side.Right]; 
+            touchStartedInProtected = (currentTouchF1.position.x > leftRightNullArea.y 
+                && areaProtected[(int)Globals.Side.Right]) || 
+                (currentTouchF1.position.x < leftRightNullArea.x
+                && areaProtected[(int)Globals.Side.Left]); 
         }
         else if (currentTouchF1.phase == UnityEngine.InputSystem.TouchPhase.Moved &&
             Globals.deactivatedStats.Contains(currentTouchF2.phase))

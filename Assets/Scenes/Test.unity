@@ -467,10 +467,6 @@ MonoBehaviour:
   - {fileID: 976133137}
   - {fileID: 976133136}
   - {fileID: 976133135}
-  defaultShaders:
-  - {fileID: -6465566751694194690, guid: 9b756c64457449a43900218c44e385ea, type: 3}
-  highlightShaders:
-  - {fileID: -6465566751694194690, guid: f149d1deca323c14a8229c5aa65904b5, type: 3}
   voiceOvers:
   - {fileID: 8300000, guid: 77cb21465a4fa10429cb2266898d341e, type: 3}
   - {fileID: 8300000, guid: 0e18f418e28bace45902694ea0b28e94, type: 3}
@@ -487,6 +483,10 @@ MonoBehaviour:
     walls of the cranium.
   - The parietal bones are bilateral skull bones that form the superior and lateral
     walls of the cranium.
+  defaultShaders:
+  - {fileID: -6465566751694194690, guid: 9b756c64457449a43900218c44e385ea, type: 3}
+  highlightShaders:
+  - {fileID: -6465566751694194690, guid: f149d1deca323c14a8229c5aa65904b5, type: 3}
   selectedOpacity: 1
   unselectedOpacity: 1
   topBottomNullArea: {x: 0, y: 256}
@@ -1161,7 +1161,7 @@ MonoBehaviour:
   selfAnimationMaxSpeed: 400
   selfAnimationAcclerate: 1
   topBottomNullArea: {x: 0, y: 0}
-  leftRightNullArea: {x: 0, y: 1848}
+  leftRightNullArea: {x: 512, y: 1848}
   decoupleSliderOverdraft: 1
 --- !u!114 &1390222730
 MonoBehaviour:

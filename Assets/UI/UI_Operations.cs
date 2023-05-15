@@ -116,6 +116,8 @@ public class UI_Operations : MonoBehaviour
 
     private Button disableRotateButton;
     private Button disableVoiceoverButton;
+    private Slider touchSensSlider;
+    private Button resetButton;
 
     private Slider selectedOpaSlider;
     private Slider unselectedOpaSlider;
@@ -153,6 +155,10 @@ public class UI_Operations : MonoBehaviour
     private int playSoundTintTime = 2000;  // Play sound iconis highlighted and slowly change back
     private Stopwatch playSoundTintSW = new Stopwatch();
 
+    private bool resetButtonPressed = false;
+    private int resetButtonTintTime = 1000;
+    private Stopwatch resetButtonTintSW = new Stopwatch();
+
     private bool isInFillSelect = true; 
 
     // Position of the rim color dropper in percentage of the chart 
@@ -177,6 +183,10 @@ public class UI_Operations : MonoBehaviour
 
         disableRotateButton = settingsGB.Q<Button>("DisAutoRotToggle");
         disableVoiceoverButton = settingsGB.Q<Button>("DisVoiceToggle");
+        touchSensSlider = settingsGB.Q<Slider>("TouchSensSlider");
+        resetButton = settingsGB.Q<Button>("ResetButton");
+
+        resetButton.clicked += () => ResetClicked(); 
 
         objectTitle = TextDescriptionGB.Q<Label>("Title");
         objectDescription = TextDescriptionGB.Q<Label>("Description");
@@ -302,6 +312,7 @@ public class UI_Operations : MonoBehaviour
                 settingsGB.style.opacity = maxOpacity;
                 settingsGB.style.left = (int)settingFlyInDistance.y;
                 tapHandler.ProtectLeftArea();
+                meinCamera.ProtectLeftArea();
 
                 settingTransitioning = false;
             }
@@ -330,7 +341,11 @@ public class UI_Operations : MonoBehaviour
 
                 // If no other elements are active, free the area 
                 if (!activeUI[Globals.UIElements.Text])
+                {
                     tapHandler.FreeLeftArea();
+                    meinCamera.FreeLeftArea();
+                }
+                    
 
                 settingTransitioning = false;
             }
@@ -347,7 +362,11 @@ public class UI_Operations : MonoBehaviour
             }
         }
 
+        // This slider only shows up with setting panel
+        // So update is only performed within 
+        UpdateTouchSensitivity();
 
+        UpdateRersetButton();
     }
 
     /// <summary>
@@ -514,6 +533,47 @@ public class UI_Operations : MonoBehaviour
         else
         {
             disableVoiceoverButton.style.backgroundImage = new StyleBackground(checkBoxDefault);
+        }
+    }
+
+    /// <summary>
+    /// Read the touch sensitivity value and send it to the camera
+    /// </summary>
+    private void UpdateTouchSensitivity()
+    {
+        meinCamera.SetTouchSensitivity(touchSensSlider.value);
+    }
+
+    /// <summary>
+    /// Reset the settings 
+    /// </summary>
+    private void ResetClicked()
+    {
+        if (disableAutoRotate)
+            ToggleAutoRotate();
+
+        if (disableVoiceover)
+            ToggleVoiceOver();
+
+        meinCamera.ExternalReset();
+        resetButtonPressed = true;
+        resetButtonTintSW.Restart();
+    }
+
+    /// <summary>
+    /// Updating the color of the reset button after it is pressed. 
+    /// </summary>
+    private void UpdateRersetButton()
+    {
+        // Update the tint color of the play icon 
+        if (resetButtonPressed && resetButtonTintSW.ElapsedMilliseconds < resetButtonTintTime)
+        {
+            // After stopwatch counts beyond resetButtonTintTime, calculation stops and thus
+            // does not need to judge whether or not the color goes beyond 1
+            float progression = Sigmoid((float)resetButtonTintSW.ElapsedMilliseconds / resetButtonTintTime);
+            Color currentColor = progression * Color.white + (1 - progression) * highlightColor;
+
+            resetButton.style.unityBackgroundImageTintColor = currentColor;
         }
     }
 
