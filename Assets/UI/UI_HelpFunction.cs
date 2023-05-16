@@ -8,6 +8,7 @@ using Unity.VisualScripting;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEditor.Experimental;
+using UnityEngine.XR;
 
 // Pretty much hand animating the entire thing by giving hard positional data. 
 public class UI_HelpFunction : MonoBehaviour
@@ -121,7 +122,8 @@ public class UI_HelpFunction : MonoBehaviour
 
     private VisualElement root;
 
-    private Button helpButton; 
+    private Button helpInstructionButton;
+    //private Button rand;
 
     private GroupBox animeContainer;
     private Button animeSprite;
@@ -159,8 +161,8 @@ public class UI_HelpFunction : MonoBehaviour
     {
         root = GetComponent<UIDocument>().rootVisualElement;
 
-        helpButton = root.Q<Button>("HelpButton");
-
+        helpInstructionButton = root.Q<Button>("HelpButton");
+        //rand = root.Q<Button>("Rand");
         animeContainer = root.Q<GroupBox>("ContainerBox");
         animeSprite = animeContainer.Q<Button>("AnimationSprite");
         animeText = animeContainer.Q<Button>("AnimationText");
@@ -173,7 +175,8 @@ public class UI_HelpFunction : MonoBehaviour
         panText  = helpInstructionsGB.Q<Label>("PanText");
         zoomText = helpInstructionsGB.Q<Label>("ZoomText");
 
-        helpButton.clicked += () => ToggleHelpInstructionDisplay();
+        helpInstructionButton.clicked += () => ToggleHelpInstructionDisplay();
+        //rand.clicked += () => ToggleHelpInstructionDisplay();
     }
 
     // Start is called before the first frame update
@@ -518,13 +521,14 @@ public class UI_HelpFunction : MonoBehaviour
     /// </summary>
     private void ToggleHelpInstructionDisplay()
     {
+
         if (helpButtonSelected)
         {
             helpButtonSelected = false;
             helpPanelTransitioning = true;
             progressionSW.Restart();
 
-            helpButton.style.unityBackgroundImageTintColor = defaultTintColor;
+            helpInstructionButton.style.unityBackgroundImageTintColor = defaultTintColor;
         }
         else
         {
@@ -533,7 +537,7 @@ public class UI_HelpFunction : MonoBehaviour
             helpPanelTransitioning = true;
             progressionSW.Restart();
 
-            helpButton.style.unityBackgroundImageTintColor = iconTintColor;
+            helpInstructionButton.style.unityBackgroundImageTintColor = iconTintColor;
         }
     }
 
@@ -542,6 +546,7 @@ public class UI_HelpFunction : MonoBehaviour
     /// </summary>
     private void UpdateHelpInstructions()
     {
+
         if(helpPanelTransitioning)
         {
             // Fade in the help instruction panel
