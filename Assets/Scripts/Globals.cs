@@ -8,6 +8,10 @@ public class Globals
     // 1000 milisecond in a second, used to convert second to milisecond 
     public const int MILISECOND_IN_SEC = 1000;
 
+    /// <summary>
+    /// The list of states for a touch session that would be treated as inactive,
+    /// that is, the user is not making active interaction with the application.
+    /// </summary>
     public static List<UnityEngine.InputSystem.TouchPhase> deactivatedStats = 
         new List<UnityEngine.InputSystem.TouchPhase>()
     {
@@ -16,6 +20,10 @@ public class Globals
         UnityEngine.InputSystem.TouchPhase.None
     };
 
+    /// <summary>
+    /// The list of states for a touch session that would be treated as active,
+    /// that is, the user is actively making interactions with the application.
+    /// </summary>
     public static List<UnityEngine.InputSystem.TouchPhase> activateStates = 
         new List<UnityEngine.InputSystem.TouchPhase>() 
     {
@@ -44,6 +52,11 @@ public class Globals
     public enum UIElements { Options, Settings, Text, Appearance };
 
 
+    /// <summary>
+    /// The 4 sides of the screen. 
+    /// Used to indicate if an UI element is currently occupying this area
+    /// and thus may interfere with touch control or object selection. 
+    /// </summary>
     public enum Side { Top, Bottom, Left, Right }
 
 }

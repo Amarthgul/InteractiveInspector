@@ -23,6 +23,8 @@ public class UI_Operations : MonoBehaviour
 
     private const int CHECKER_CHART_MARGIN = 64; // Margin of the checker chart 
 
+    // The dropper is an image whose origin is not the center.
+    // This is used to correct its location so that the center follows touch control. 
     private const int DROPPER_OFFSET = 32;
 
     // This is purely a magical number obtained by observation.
@@ -161,10 +163,10 @@ public class UI_Operations : MonoBehaviour
 
     private bool isInFillSelect = true; 
 
-    // Position of the rim color dropper in percentage of the chart 
+    // Position of the rim color dropper in percentage location of the color chart 
     private Vector2 rimColorPosition = new Vector2(.5f, .5f);
 
-    // Position of the fill color dropper in percentage of the chart 
+    // Position of the fill color dropper in percentage location of the color chart 
     private Vector2 fillColorPosition = new Vector2(0f, 0f);
 
     private Dictionary<Globals.UIElements, bool> activeUI = new Dictionary<Globals.UIElements, bool>();

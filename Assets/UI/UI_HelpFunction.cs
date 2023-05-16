@@ -5,10 +5,8 @@ using System.Diagnostics;
 using Debug = UnityEngine.Debug;
 using UnityEngine.UIElements;
 using Unity.VisualScripting;
-using static UnityEditor.Experimental.GraphView.Port;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
-using UnityEditor.Rendering.LookDev;
 using UnityEditor.Experimental;
 
 // Pretty much hand animating the entire thing by giving hard positional data. 
