@@ -42,11 +42,13 @@ this will make the mesh selectable.
 
 2. If desired, create and add a new shader in the `Highlight Shaders` list to
 the corresponding element number. This shader will be used as the object's highlight
-selection effect. 
+selection effect. Please note that this shader should have a rim and fill light attribute,
+otherwise the application may have unexpected outcome when user change the rima nd fill color
+of the selected. 
 
-3. Using the same method, create and add a vocie over audio clip in `Voice Overs` 
-list and `Descriptions` list. The former one is for the audio voiceover when object
-is selected, the later for the displayed text.
+3. Using the same method, add a vocie over audio clip into the project and drag it in `Voice Overs` 
+list, and fill in the corresponding `Descriptions` list. The former one is for the audio voiceover 
+when object is selected, the later for the displayed text.
 
 
 ### Changing the displayed name of the object
@@ -54,3 +56,11 @@ is selected, the later for the displayed text.
 The displayed name of the selected object is the name of the mesh. Thus, simply double
 click on the mesh (or select the object in scene hierarchy and press `F2`) in scene hierachy to change the mesh name 
 will alter the name disaplyed during runtime. 
+
+
+## Dev Log 
+
+* May 15th 
+  
+  Created the first release. Release package is an xCode project that can be used to build the app
+  on iPad Air 4th Gen. iPhone is not supported in this build. 
