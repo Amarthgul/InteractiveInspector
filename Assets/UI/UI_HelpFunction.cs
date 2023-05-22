@@ -9,6 +9,8 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEditor.Experimental;
 using UnityEngine.XR;
+using UnityEditor.Rendering.LookDev;
+using static UnityEngine.Rendering.DebugUI.MessageBox;
 
 // Pretty much hand animating the entire thing by giving hard positional data. 
 public class UI_HelpFunction : MonoBehaviour
@@ -20,7 +22,7 @@ public class UI_HelpFunction : MonoBehaviour
 
     private const int INSTRUCTION_GB_TOP = 260;
 
-    private const int INSTRUCTION_GB_HEIGHT = 1024; 
+    private const int INSTRUCTION_GB_HEIGHT = 1024;
 
     /// ===============================================================
     /// ==================== Serialized variables =====================
@@ -37,7 +39,7 @@ public class UI_HelpFunction : MonoBehaviour
     [Header("Manual animation")]
 
     [Tooltip("When enabled, the user can touch and end the help animation while ")]
-    [SerializeField] bool allowTouchInterruption = false; 
+    [SerializeField] bool allowTouchInterruption = false;
 
     [Tooltip("The maxmium opacity for all elements in this UI document")]
     [Range(0f, 1f)]
@@ -105,7 +107,7 @@ public class UI_HelpFunction : MonoBehaviour
 
     [SerializeField] Sprite zoomSprite;
 
-    [SerializeField] Color arrowTintColor; 
+    [SerializeField] Color arrowTintColor;
 
     [SerializeField] Vector2 zoomArrow1StartPos = Vector2.zero;
     [SerializeField] Vector2 zoomArrow1EndPos = Vector2.zero;
@@ -133,11 +135,12 @@ public class UI_HelpFunction : MonoBehaviour
     private IMGUIContainer arrowBottomSprite;
 
     private GroupBox helpInstructionsGB;
+    private GroupBox helpInstructionsSprite;
     private Label rotText;
     private Label panText;
     private Label zoomText;
 
-    private bool helpButtonSelected = false; 
+    private bool helpButtonSelected = false;
 
     // Each animation stage is marked true once complete
     private List<bool> animeStage = new List<bool>() { false, false, false };
@@ -146,6 +149,18 @@ public class UI_HelpFunction : MonoBehaviour
     private bool initialFadeInFinished = false;
 
     private bool helpPanelTransitioning = false;
+
+    // True location after factor in the screen resolution difference 
+    private Vector2 TrotAnimStartPos;
+    private Vector2 TrotAnimEndPos;
+    private Vector2 TpanAnimStartPos;
+    private Vector2 TpanAnimEndPos;
+    private Vector2 TzoomArrow1StartPos;
+    private Vector2 TzoomArrow1EndPos;
+    private Vector2 TzoomArrow2StartPos;
+    private Vector2 TzoomArrow2EndPos;
+
+    private List<float> textPos = new List<float>() { 360, 960, 1560 };
 
     private int lastTapCount = 0; 
     private Stopwatch tapProtectionSW = new Stopwatch();
@@ -156,6 +171,9 @@ public class UI_HelpFunction : MonoBehaviour
     private Globals.CameraState lastCameraState; 
 
     private Color defaultTintColor = Color.white;
+
+    private bool initialUpdated = false;
+
 
     private void OnEnable() 
     {
@@ -171,6 +189,7 @@ public class UI_HelpFunction : MonoBehaviour
         arrowBottomSprite = animeContainer.Q<IMGUIContainer>("ArrowBottom");
 
         helpInstructionsGB = root.Q<GroupBox>("HelpInstructions");
+        helpInstructionsSprite = helpInstructionsGB.Q<GroupBox>("ImageSprite");
         rotText  = helpInstructionsGB.Q<Label>("RotText");
         panText  = helpInstructionsGB.Q<Label>("PanText");
         zoomText = helpInstructionsGB.Q<Label>("ZoomText");
@@ -186,7 +205,7 @@ public class UI_HelpFunction : MonoBehaviour
         lastCameraState = meinCamera.GetCameraState();
 
         animeSprite.style.backgroundImage = new StyleBackground(rotSprite);
-        animeSprite.style.left = rotAnimStartPos.x;
+        animeSprite.style.left = TrotAnimStartPos.x;
         animeText.text = rotDescription;
 
         animeSprite.style.opacity = 0;
@@ -205,6 +224,9 @@ public class UI_HelpFunction : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!initialUpdated)
+            CalculateLocations();
+
         CheckWarmUp();
         UpdateWarmUp();
 
@@ -233,6 +255,41 @@ public class UI_HelpFunction : MonoBehaviour
     /// ======================= Private Methods =======================
     /// ===============================================================
 
+
+    /// <summary>
+    /// Given the current screen's resolution, calculate the location 
+    /// of the UI elements and their animtion locations. 
+    /// </summary>
+    private void CalculateLocations()
+    {
+        int screenWidth = Screen.currentResolution.width;
+        int screenHeight = Screen.currentResolution.height;
+
+        // Scale ratio between iPad Air 4th gen and current device 
+        float ratio = screenWidth / Globals.iPadAir4thGen.y;
+
+        int leftOffset = (int)((screenWidth - Globals.iPadAir4thGen.y) / 2);
+        helpInstructionsSprite.style.left = leftOffset;
+        rotText.style.left = (int)(textPos[0] * ratio ); 
+        panText.style.left = (int)(textPos[1] * ratio );
+        zoomText.style.left = (int)(textPos[2] * ratio );
+
+        TrotAnimStartPos = rotAnimStartPos * ratio;
+        TrotAnimEndPos = rotAnimEndPos * ratio;
+        TpanAnimStartPos = panAnimStartPos * ratio;
+        TpanAnimEndPos = panAnimEndPos * ratio;
+
+        TzoomArrow1StartPos = zoomArrow1StartPos * ratio;
+        TzoomArrow1EndPos = zoomArrow1EndPos * ratio;
+        TzoomArrow2StartPos = zoomArrow2StartPos * ratio;
+        TzoomArrow2EndPos = zoomArrow2EndPos * ratio;
+
+
+        // The first several updates, for some reason, returns NaN for size (shouldn't Start and OnEnable be called first?).
+        // So only after the values become positive will the initial update be marked as complete. 
+        if (helpInstructionsGB.resolvedStyle.height > 0)
+            initialUpdated = true;
+    }
 
     /// <summary>
     /// Helper animation will not start count down before the camera is ready
@@ -317,8 +374,8 @@ public class UI_HelpFunction : MonoBehaviour
                 // Animate the sprite 
                 prorgession = (float)progressionSW.ElapsedMilliseconds /
                 (rotAnimTime * Globals.MILISECOND_IN_SEC);
-                LeftPos = rotAnimEndPos.x * Sigmoid(prorgession) +
-                Sigmoid(1 - prorgession) * rotAnimStartPos.x;
+                LeftPos = TrotAnimEndPos.x * Sigmoid(prorgession) +
+                Sigmoid(1 - prorgession) * TrotAnimStartPos.x;
 
                 animeSprite.style.left = LeftPos;
             }
@@ -341,7 +398,7 @@ public class UI_HelpFunction : MonoBehaviour
                     progressionSW.Restart();
 
                     animeSprite.style.backgroundImage = new StyleBackground(panSprite);
-                    animeSprite.style.left = panAnimStartPos.x;
+                    animeSprite.style.left = TpanAnimStartPos.x;
                     animeText.text = panDescription;
                 }
             }
@@ -393,11 +450,11 @@ public class UI_HelpFunction : MonoBehaviour
 
                 animeSprite.style.left = PINCH_ICON_POS;
 
-                arrowBottomSprite.style.left = zoomArrow2StartPos.x;
-                arrowBottomSprite.style.top = zoomArrow2StartPos.y;
+                arrowBottomSprite.style.left = TzoomArrow2StartPos.x;
+                arrowBottomSprite.style.top = TzoomArrow2StartPos.y;
 
-                arrowTopSprite.style.left = zoomArrow1StartPos.x;
-                arrowTopSprite.style.top = zoomArrow1StartPos.y;
+                arrowTopSprite.style.left = TzoomArrow1StartPos.x;
+                arrowTopSprite.style.top = TzoomArrow1StartPos.y;
             }
         }
         // =======================================================================
@@ -426,14 +483,14 @@ public class UI_HelpFunction : MonoBehaviour
                 float SigProgression = Sigmoid(prorgession); 
                 float InvSigProgression = 1 - SigProgression;
 
-                float LeftPos1 = zoomArrow1EndPos.x * SigProgression +
-                    InvSigProgression * zoomArrow1StartPos.x;
-                float LeftPos2 = zoomArrow2EndPos.x * SigProgression +
-                    InvSigProgression * zoomArrow2StartPos.x;
-                float TopPos1 = zoomArrow1EndPos.y * SigProgression +
-                    InvSigProgression * zoomArrow1StartPos.y;
-                float TopPos2 = zoomArrow2EndPos.y * SigProgression +
-                    InvSigProgression * zoomArrow2StartPos.y;
+                float LeftPos1 = TzoomArrow1EndPos.x * SigProgression +
+                    InvSigProgression * TzoomArrow1StartPos.x;
+                float LeftPos2 = TzoomArrow2EndPos.x * SigProgression +
+                    InvSigProgression * TzoomArrow2StartPos.x;
+                float TopPos1 = TzoomArrow1EndPos.y * SigProgression +
+                    InvSigProgression * TzoomArrow1StartPos.y;
+                float TopPos2 = TzoomArrow2EndPos.y * SigProgression +
+                    InvSigProgression * TzoomArrow2StartPos.y;
 
                 arrowBottomSprite.style.left = LeftPos2;
                 arrowBottomSprite.style.top = TopPos2;

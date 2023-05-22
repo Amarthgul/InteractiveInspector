@@ -8,6 +8,17 @@ public class Globals
     // 1000 milisecond in a second, used to convert second to milisecond 
     public const int MILISECOND_IN_SEC = 1000;
 
+
+    /// <summary>
+    /// Resolution of the iPad Air 4th gen.
+    /// Since the app was originally developed and tested on this device,
+    /// much of the dimensions was specified for this resolution. As such,
+    /// some later code uses this dimension as a reference to scale the UI.
+    /// </summary>
+    public static Vector2 iPadAir4thGen = new Vector2(1640, 2360);
+
+    
+
     /// <summary>
     /// The list of states for a touch session that would be treated as inactive,
     /// that is, the user is not making active interaction with the application.

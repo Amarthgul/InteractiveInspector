@@ -9,6 +9,7 @@ using Debug = UnityEngine.Debug;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using Unity.VisualScripting;
+using static UnityEngine.UI.CanvasScaler;
 
 public class UI_Operations : MonoBehaviour
 {
@@ -32,7 +33,11 @@ public class UI_Operations : MonoBehaviour
     // to local has a bias of roughly 90 pixels.
     // I assume this has something to do with 32 + 64, despite this
     // combination makes no sense, it works, so here it is. 
-    private const int DROPPER_TRANSFORM_OFFSET = 96; 
+    private const int DROPPER_TRANSFORM_OFFSET = 96;
+
+    // This space is to move the UI down to make what's underneath this one selectable.
+    // Otherwise, this UI will cover everthing and render other layers useless. 
+    private const int TOP_OFFSET = 140; 
 
     /// ===============================================================
     /// ==================== Serialized variables =====================  
@@ -108,6 +113,7 @@ public class UI_Operations : MonoBehaviour
 
     private VisualElement root;
 
+    private GroupBox optionsGB; 
     private Button settingsButton;
     private Button textButton;
     private Button appearanceButton;
@@ -132,7 +138,7 @@ public class UI_Operations : MonoBehaviour
     private Label objectDescription;
     private Button playAudioButton;
 
-    private AudioClip currentAudio; // Audio for the currently selected object, if any
+    private AudioClip currentAudio; // Audio for the currently selected object, if there are any
 
     private bool disableAutoRotate = false;
     private bool disableVoiceover = false;
@@ -169,12 +175,16 @@ public class UI_Operations : MonoBehaviour
     // Position of the fill color dropper in percentage location of the color chart 
     private Vector2 fillColorPosition = new Vector2(0f, 0f);
 
+    // Dict recording the stats of the UIs, whether or not they are active. Initilized in `Start()`
     private Dictionary<Globals.UIElements, bool> activeUI = new Dictionary<Globals.UIElements, bool>();
+
+    private bool initialUpdated = false;
 
     private void OnEnable()
     {
         root = GetComponent<UIDocument>().rootVisualElement;
 
+        optionsGB = root.Q<GroupBox>("OptionPanel"); 
         settingsButton = root.Q<Button>("Settings");
         textButton = root.Q<Button>("Text");
         appearanceButton = root.Q<Button>("Appearance");
@@ -201,7 +211,7 @@ public class UI_Operations : MonoBehaviour
         disableRotateButton.clicked += () => ToggleAutoRotate();
         disableVoiceoverButton.clicked += () => ToggleVoiceOver();
 
-        playAudioButton.clicked += () => ManualPlayAudiop(); 
+        playAudioButton.clicked += () => ManuallyPlayAudiop(); 
 
         selectedOpaSlider = appearanceGB.Q<Slider>("SelectedOpacitySlider");
         unselectedOpaSlider = appearanceGB.Q<Slider>("UnselectedOpacitySlider");
@@ -213,6 +223,8 @@ public class UI_Operations : MonoBehaviour
         colorPickerButton.clicked += () => ColorPicking();
         selectFillButton.clicked += () => SelectFillColor();
         selectRimButton.clicked += () => SelectRimColor();
+
+        
     }
 
     public void Initialize(InputAction PT)
@@ -223,6 +235,8 @@ public class UI_Operations : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        
+
         activeUI = new Dictionary<Globals.UIElements, bool>() {
             { Globals.UIElements.Options, false },
             { Globals.UIElements.Settings, false },
@@ -257,9 +271,47 @@ public class UI_Operations : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
+        if (!initialUpdated)
+            CalculateLocations();
+        
 
         UpdateVisbility();
+    }
+
+    /// ===============================================================
+    /// ======================= Private Methods =======================
+    /// ===============================================================
+
+    /// <summary>
+    /// Given the current screen's resolution, calculate the location 
+    /// of the UI elements and their animtion locations. 
+    /// </summary>
+    private void CalculateLocations()
+    {
+        int screenWidth = Screen.currentResolution.width;
+        int screenHeight = Screen.currentResolution.height;
+
+        root.style.width = screenWidth;
+        root.style.height = screenHeight;
+        root.style.top = TOP_OFFSET;
+
+        optionsGB.style.left = screenWidth / 2 - (int)optionsGB.resolvedStyle.width / 2;
+        optionsGB.style.top = screenHeight - (int)optionsGB.resolvedStyle.height * 2 - TOP_OFFSET;
+
+        int leftPos = (screenHeight - (int)settingsGB.resolvedStyle.height) / 2 - TOP_OFFSET * 2;
+        settingsGB.style.top = leftPos;
+        int rightPos = (screenHeight - (int)appearanceGB.resolvedStyle.height) / 2 - TOP_OFFSET * 2;
+        appearanceGB.style.top = rightPos;
+        int txtPos = (screenHeight - (int)TextDescriptionGB.resolvedStyle.height) / 2 - TOP_OFFSET * 2;
+        TextDescriptionGB.style.top = txtPos > 0 ? txtPos : 0;
+
+        meinCamera.SetLeftRightProtectArea((int)settingsGB.resolvedStyle.width, 
+            screenWidth - (int)appearanceGB.resolvedStyle.width);
+
+        // The first several updates, for some reason, returns NaN (shouldn't Start and OnEnable be called first?).
+        // So only after the values become positive will the initial update be marked as complete. 
+        if (optionsGB.resolvedStyle.height > 0)
+            initialUpdated = true;
     }
 
     /// <summary>
@@ -608,7 +660,7 @@ public class UI_Operations : MonoBehaviour
             // If auto-play is not disabled, then play the audio once the text panel shows up
             if (!disableVoiceover) 
             {
-                ManualPlayAudiop(); 
+                ManuallyPlayAudiop(); 
             }
 
             activeUI[Globals.UIElements.Text] = true;
@@ -691,6 +743,11 @@ public class UI_Operations : MonoBehaviour
 
             playAudioButton.style.unityBackgroundImageTintColor = currentColor;
         }
+
+        if (tapHandler.newlySelected)
+        {
+            RefreshTexts();
+        }
     }
 
     /// <summary>
@@ -712,7 +769,7 @@ public class UI_Operations : MonoBehaviour
     /// If auto play audio is disabled, this button will allow the user
     /// to play audio by manually clicking the button. 
     /// </summary>
-    private void ManualPlayAudiop()
+    private void ManuallyPlayAudiop()
     {
         if (currentAudio != null)
         {

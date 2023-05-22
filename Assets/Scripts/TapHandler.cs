@@ -86,6 +86,12 @@ public class TapHandler : MonoBehaviour
     // For counting time between taps
     private Stopwatch tapStopwatch = new Stopwatch();
 
+    // Mark this to true whenever the user makes a new selection 
+    public bool newlySelected = false;
+
+    // Name of the last selected object 
+    private string lastSelected = ""; 
+
     // UI interference 
     // Top, bottom, left, right, as defined in Globals
     List<bool> areaProtected = new List<bool>() { false, false, false, false };
@@ -114,8 +120,21 @@ public class TapHandler : MonoBehaviour
         
         if (nameOfTapped != null)
         {
+            
+
             // If a valid object is selected, alter its (or others') shader(s)
-            AlterTapped(nameOfTapped); 
+            AlterTapped(nameOfTapped);
+
+            if (nameOfTapped != lastSelected && IsSelected(nameOfTapped))
+            {
+                newlySelected = true;
+                lastSelected = nameOfTapped;
+            }
+            else
+            {
+                newlySelected = false;
+            }
+
         }
         if (nameOfTapped == NONE)
         {
@@ -272,7 +291,9 @@ public class TapHandler : MonoBehaviour
 
         for (int i = 0; i < selected.Count; i++)
         {
-            if (selected[i] && descriptions[i].Length > 0)
+            //if (selected[i] && descriptions[i].Length > 0)
+                //return descriptions[i];
+            if (canBeTapped[i].name == lastSelected)
                 return descriptions[i];
         }
         
@@ -288,7 +309,9 @@ public class TapHandler : MonoBehaviour
     {
         for (int i = 0; i < selected.Count; i++)
         {
-            if (selected[i])
+            //if (selected[i])
+                //return canBeTapped[i].name;
+            if (canBeTapped[i].name == lastSelected)
                 return canBeTapped[i].name;
         }
 
@@ -304,7 +327,7 @@ public class TapHandler : MonoBehaviour
     {
         for (int i = 0; i < selected.Count; i++)
         {
-            if (selected[i])
+            if (canBeTapped[i].name == lastSelected)
                 return voiceOvers[i];
         }
 
@@ -393,7 +416,6 @@ public class TapHandler : MonoBehaviour
         }
     }
 
-
     /// <summary>
     /// Clear all the highlight effects by reseting all the shaders
     /// </summary>
@@ -479,6 +501,14 @@ public class TapHandler : MonoBehaviour
         
     }
 
-    
+    private bool IsSelected(string name)
+    {
+        for (int i = 0; i < selected.Count; i++)
+        {
+            if (canBeTapped[i].name == name && selected[i])
+                return true;
+        }
+        return false;
+    }
 
 }

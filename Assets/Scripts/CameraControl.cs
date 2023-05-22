@@ -176,8 +176,7 @@ public class CameraControl : MonoBehaviour
     [Tooltip("Part of top and bottom screen becomes unresponsive when UIs are active")]
     [SerializeField] Vector2 topBottomNullArea = Vector2.zero;
 
-    [Tooltip("Part of left and right screen becomes unresponsive when UIs are active")]
-    [SerializeField] Vector2 leftRightNullArea = Vector2.zero;
+    
 
     [Tooltip("When using the slider in UI, it is possible to drastically rotate the mdoel " +
         "when finger goes outside of the UI area. Enable this option to nullify rotate when " +
@@ -237,6 +236,10 @@ public class CameraControl : MonoBehaviour
     // Self-animation
     private float currentSelfAnimeSpeed = 0;
     private bool disableSelfIdleAnim = false;
+
+    // Part of left and right screen becomes unresponsive when UIs are active
+    private Vector2 leftRightNullArea = Vector2.zero;
+
 
     // UI interference 
     // Top, bottom, left, right, as defined in Globals
@@ -388,6 +391,16 @@ public class CameraControl : MonoBehaviour
     public void ExternalReset()
     {
         RestSettings();
+    }
+
+    /// <summary>
+    /// Set the left and right bound beyond which the app cease to respond to touch
+    /// </summary>
+    /// <param name="left">Smaller than this value will not trigger response</param>
+    /// <param name="right">Bigger than this value will not trigger response</param>
+    public void SetLeftRightProtectArea(int left, int right)
+    {
+        leftRightNullArea = new Vector2(left, right);
     }
 
     /// ===============================================================
