@@ -7,6 +7,17 @@
 This repo inherits much of the concepts from [this repo](https://github.com/cs-isamiul/Interactive-Anatomy-Visualization-Demo),
 but took a different implemntation and is built for iOS platform. 
 
+## Run on iPad:
+
+Download the release package and open the xCode project (does not work on Windows). In `Project navigator`, select
+`Unity-iPhone`, which will open an attribute editor. In the `Signing & Capabilities` tab, check `Automatically manage signing`
+and select the right team (with developer account). 
+
+Connect the device (current version supports only iPad) and enable the developer mode on the device. In Xcode, you should be 
+able to click the top panel and see a drop down menu which contains the currently connected device, select that device and 
+hit start. After Xcode completes, the app should start automatically on you device. 
+
+
 ## Basic operations
 
 * Touch and move with a single finger around the screen to rotate around the model 
@@ -59,6 +70,13 @@ will alter the name disaplyed during runtime.
 
 
 ## Dev Log 
+
+* May 23rd 
+
+  UIs have been reworked to be adaptive, which tries to detect the resoultion of the current screen and move to the 
+  best place. 
+
+  Selection and text/voice has been reworked to always reflect the infomation of the newest selected object. 
 
 * May 15th 
   
