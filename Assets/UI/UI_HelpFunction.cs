@@ -38,6 +38,10 @@ public class UI_HelpFunction : MonoBehaviour
         "that would be still images without animtion.")]
     [Header("Manual animation")]
 
+    [Tooltip("When enabled, a help animation plays automatically if the player makes no" +
+        "input for 5 scconds after the app started.")]
+    [SerializeField] private bool enableStartAnimation = false;
+
     [Tooltip("When enabled, the user can touch and end the help animation while ")]
     [SerializeField] bool allowTouchInterruption = false;
 
@@ -227,21 +231,24 @@ public class UI_HelpFunction : MonoBehaviour
         if (!initialUpdated)
             CalculateLocations();
 
-        CheckWarmUp();
-        UpdateWarmUp();
+        if (enableStartAnimation)
+        {
+            CheckWarmUp();
+            UpdateWarmUp();
 
-        // As long as a stage is not complete
-        // update the initial animation 
-        if (animeStage.Contains(false))
-        {
-            UpdateAnimation();
+            // As long as a stage is not complete
+            // update the initial animation 
+            if (animeStage.Contains(false))
+            {
+                UpdateAnimation();
+            }
+            // Ensure all animated sprites are dimmed out
+            else
+            {
+                UpdateDimmedOutSprites();
+            }
+            UpdateTouchInterruption();
         }
-        // Ensure all animated sprites are dimmed out
-        else
-        {
-            UpdateDimmedOutSprites(); 
-        }
-        UpdateTouchInterruption();
 
         UpdateHelpInstructions();
     }
@@ -278,11 +285,14 @@ public class UI_HelpFunction : MonoBehaviour
         TrotAnimEndPos = rotAnimEndPos * ratio;
         TpanAnimStartPos = panAnimStartPos * ratio;
         TpanAnimEndPos = panAnimEndPos * ratio;
+        animeSprite.style.left = TpanAnimStartPos.x; 
 
         TzoomArrow1StartPos = zoomArrow1StartPos * ratio;
         TzoomArrow1EndPos = zoomArrow1EndPos * ratio;
         TzoomArrow2StartPos = zoomArrow2StartPos * ratio;
         TzoomArrow2EndPos = zoomArrow2EndPos * ratio;
+
+        helpInstructionsGB.style.top = (int)((screenHeight - INSTRUCTION_GB_HEIGHT) / 2.0);
 
 
         // The first several updates, for some reason, returns NaN for size (shouldn't Start and OnEnable be called first?).
