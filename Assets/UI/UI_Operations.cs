@@ -271,8 +271,8 @@ public class UI_Operations : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!initialUpdated)
-            CalculateLocations();
+        //if (!initialUpdated)
+        CalculateLocations();
         
 
         UpdateVisbility();

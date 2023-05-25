@@ -609,7 +609,8 @@ public class CameraControl : MonoBehaviour
                 {
                     thisCamera.transform.Translate(
                     new Vector3(lastDelta.x, lastDelta.y, 0) * Time.deltaTime *
-                    cameraRotationDamper * touchRotateMagnify * (1 + sensitivityMod),
+                    cameraRotationDamper * touchRotateMagnify * (1 + sensitivityMod)
+                    * (1 + globalSensitivityControl),
                     Space.Self);
                 }
 
@@ -757,7 +758,8 @@ public class CameraControl : MonoBehaviour
             if (currentSelfAnimeSpeed > selfAnimationMaxSpeed * Time.deltaTime)
                 currentSelfAnimeSpeed = selfAnimationMaxSpeed * Time.deltaTime; 
 
-            float currentRotateStep = (rotateClockWise ? -1 : 1) * Time.deltaTime * currentSelfAnimeSpeed;
+            float currentRotateStep = (rotateClockWise ? -1 : 1) * 
+                Time.deltaTime * currentSelfAnimeSpeed * (1 + globalSensitivityControl);
 
             thisCamera.transform.Translate(new Vector3(currentRotateStep, 0, 0), Space.Self);
 
