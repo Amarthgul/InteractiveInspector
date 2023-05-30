@@ -71,6 +71,13 @@ will alter the name disaplyed during runtime.
 
 ## Dev Log 
 
+* May 30th 
+
+  Fixed the issue where momentum will lead the camera to rotate fanatically around the vertical axis. 
+
+  Added portrait mode suport. 
+
+
 * May 23rd 
 
   UIs have been reworked to be adaptive, which tries to detect the resoultion of the current screen and move to the 
