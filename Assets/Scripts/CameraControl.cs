@@ -58,17 +58,17 @@ public class CameraControl : MonoBehaviour
 
     [Tooltip("Damping the rotating action")]
     [Range(0, 50)]
-    [SerializeField] private float cameraRotationDamper = 30f;
+    [SerializeField] private float cameraRotationDamper = 20f;
 
     [Tooltip("Whether or not interaction prodeuces momentum")]
     [SerializeField] private bool enableMomentum = true;
 
     [Tooltip("Movement bigger than this will trigger momentum")]
-    [SerializeField] private Vector2 momentumThreshold = new Vector2 (1, 1);
+    [SerializeField] private Vector2 momentumThreshold = new Vector2 (4, 4);
 
     [Tooltip("The ratio of which the spped falls off")]
     [Range(0, 1)]
-    [SerializeField] private float rotateFallOff = .9f; 
+    [SerializeField] private float rotateFallOff = .95f; 
 
     [Tooltip("The defualt position if not locked on target")]
     [SerializeField] private Vector3 defaultPosition = Vector3.zero;
@@ -86,11 +86,11 @@ public class CameraControl : MonoBehaviour
     [SerializeField] private GameObject targetObject; 
 
     [Tooltip("Enable this will make the camera rotate around am object or a point")]
-    [SerializeField] private bool lockOnTarget = false;
+    [SerializeField] private bool lockOnTarget = true;
 
     [Tooltip("Offset the camera by a certain height to bring better visibility")]
     [Range(-10f, 10f)]
-    [SerializeField] private float targetHeightOffset = 2f; 
+    [SerializeField] private float targetHeightOffset = -1f; 
 
     [Tooltip("When locked on target, this indicates how far the camera is sway at the start")]
     [Range(0, 100)]
@@ -106,7 +106,7 @@ public class CameraControl : MonoBehaviour
 
     [Tooltip("Making the rotate sensitivity change accroding to distance to the subject.")]
     [Range(-10, 10)]
-    [SerializeField] private float distanceSensityCoef = .1f;
+    [SerializeField] private float distanceSensityCoef = 1.7f;
 
 
     /// ======================== Touch Control ========================  
@@ -116,20 +116,20 @@ public class CameraControl : MonoBehaviour
 
     [Tooltip("Touch control is less sensitive, magnification is thus needed")]
     [Range(0, 20)]
-    [SerializeField] private float touchRotateMagnify = 1.5f; 
+    [SerializeField] private float touchRotateMagnify = .04f; 
 
     [Tooltip("Touch control is less sensitive, magnification is thus needed")]
     [Range(0, 20)]
-    [SerializeField] private float touchPinchMagnify= 20f;
+    [SerializeField] private float touchPinchMagnify= .4f;
 
     [Tooltip("Touch control is less sensitive, magnification is thus needed")]
     [Range(0, 20)]
-    [SerializeField] private float touchPanMagnify = 10f;
+    [SerializeField] private float touchPanMagnify = .04f;
 
     [Tooltip("Finger will always move a bit on screen, this variable is used " +
         "as an activation threshold, bigger than which will be treated as pinching")]
     [Range(0, 20)]
-    [SerializeField] private float pinchActivationValue = 1f;
+    [SerializeField] private float pinchActivationValue = 10f;
 
     /// =========================== Animation ========================= 
     [Space(15)]
@@ -156,11 +156,11 @@ public class CameraControl : MonoBehaviour
 
     [Tooltip("The maxmium speed of which the self animation goes")]
     [Range(0f, 400f)]
-    [SerializeField] private float selfAnimationMaxSpeed = 200f;
+    [SerializeField] private float selfAnimationMaxSpeed = 50f;
 
     [Tooltip("The accleration of self animation")]
     [Range(0f, 20f)]
-    [SerializeField] private float selfAnimationAcclerate = 5f;
+    [SerializeField] private float selfAnimationAcclerate = .2f;
 
 
     /// ===================== UI precautionary ======================== 
@@ -587,7 +587,7 @@ public class CameraControl : MonoBehaviour
             thisCamera.transform.Translate(
                 new Vector3(singleFingerDelta.x, singleFingerDelta.y, 0) * Time.deltaTime * 
                 cameraRotationDamper * touchRotateMagnify * (1 + sensitivityMod)
-                * (1 + globalSensitivityControl),
+                * (1 + globalSensitivityControl) * ElevationModifier(),
                 Space.Self);
 
             // Keep the camera looking at the subject/location 
@@ -602,16 +602,17 @@ public class CameraControl : MonoBehaviour
             if( enableMomentum) // Let the model keep rotating a bit 
             {
                 // Decrease delta 
-                lastDelta *= rotateFallOff; 
+                lastDelta *= rotateFallOff * ElevationModifier(); 
 
                 // Only delta high enough can trigger momentum effect 
                 if (Vector2.SqrMagnitude(lastDelta) > Vector2.SqrMagnitude(momentumThreshold))
                 {
                     thisCamera.transform.Translate(
-                    new Vector3(lastDelta.x, lastDelta.y, 0) * Time.deltaTime *
-                    cameraRotationDamper * touchRotateMagnify * (1 + sensitivityMod)
-                    * (1 + globalSensitivityControl),
-                    Space.Self);
+                        new Vector3(lastDelta.x, lastDelta.y, 0) * Time.deltaTime *
+                        cameraRotationDamper * 
+                        touchRotateMagnify * (1 + sensitivityMod)
+                        * (1 + globalSensitivityControl),
+                        Space.Self);
                 }
 
                 // Stop the movement when it's below certain value 
@@ -858,6 +859,21 @@ public class CameraControl : MonoBehaviour
         return Mathf.Exp(-Mathf.Pow(input, SPEED_FUNCTION_POW));
     }
 
-    
+    /// <summary>
+    /// Provide a modifier that's smaller and smaller as the camera gets
+    /// closer to the vertical axis of the target object. 
+    /// </summary>
+    /// <returns>Coeffient between 0-1</returns>
+    private float ElevationModifier()
+    {
+        float upDownAngle = Math.Abs(thisCamera.transform.rotation.eulerAngles.x);
+
+        if (upDownAngle > 90)
+            upDownAngle = 90 - (upDownAngle % 90);
+        float modifier = 1 - (float)Math.Pow((upDownAngle / 90), 4);
+
+        return modifier;
+    }
+
 }
 
