@@ -1,4 +1,4 @@
-# Interactive Inspector | iOS
+# Interactive Inspector | iOS | Adaptive UI 
 
 <p align="center">
 	<img src="https://raw.githubusercontent.com/Amarthgul/InteractiveInspector/main/Assets/Resources/Screenshots/CoverVer01.png" width="512">
@@ -6,6 +6,10 @@
 
 This repo inherits much of the concepts from [this repo](https://github.com/cs-isamiul/Interactive-Anatomy-Visualization-Demo),
 but took a different implemntation and is built for iOS platform. 
+
+This branch is different from the main as it is built to adaptive different devices and resoultions  
+at the price of no longer supporting fly-in and fly-out animations. Idealy, this version would be able
+to work on both iOS and on browser as an WebGL application. 
 
 ## Run on iPad:
 
