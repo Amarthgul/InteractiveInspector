@@ -66,15 +66,6 @@ public class UI_Operations : MonoBehaviour
     [Tooltip("Total time of the fly-in animation")]
     [SerializeField] private float flyInTime = 1f;
 
-    [Tooltip("The start and end position of the setting panel flying from left")]
-    [SerializeField] private Vector2 settingFlyInDistance = Vector2.zero;
-
-    [Tooltip("The start and end position of the text description panel flying from left")]
-    [SerializeField] private Vector2 textFlyInDistace = Vector2.zero;
-
-    [Tooltip("The start and end position of panels flying from right")]
-    [SerializeField] private Vector2 rightFlyInDistance = Vector2.zero;
-
     [Space(15)]
     [Header("Display and sprites")]
     [Space(10)]
@@ -250,10 +241,6 @@ public class UI_Operations : MonoBehaviour
         settingsGB.style.opacity = 0;
         appearanceGB.style.opacity = 0;
         TextDescriptionGB.style.opacity = 0;
-        TextDescriptionGB.style.left = textFlyInDistace.x; 
-
-        leftPos = settingFlyInDistance.x; 
-        rightPos = rightFlyInDistance.x;
 
         colorPickerButton.style.top = COLOR_PICKER_OFFSET;
         colorPickerButton.style.width = CHECKER_CHART_SIZE;
@@ -271,9 +258,6 @@ public class UI_Operations : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //if (!initialUpdated)
-        CalculateLocations();
-        
 
         UpdateVisbility();
     }
@@ -282,37 +266,6 @@ public class UI_Operations : MonoBehaviour
     /// ======================= Private Methods =======================
     /// ===============================================================
 
-    /// <summary>
-    /// Given the current screen's resolution, calculate the location 
-    /// of the UI elements and their animtion locations. 
-    /// </summary>
-    private void CalculateLocations()
-    {
-        int screenWidth = Screen.currentResolution.width;
-        int screenHeight = Screen.currentResolution.height;
-
-        root.style.width = screenWidth;
-        root.style.height = screenHeight;
-        root.style.top = TOP_OFFSET;
-
-        optionsGB.style.left = screenWidth / 2 - (int)optionsGB.resolvedStyle.width / 2;
-        optionsGB.style.top = screenHeight - (int)optionsGB.resolvedStyle.height * 2 - TOP_OFFSET;
-
-        int leftPos = (screenHeight - (int)settingsGB.resolvedStyle.height) / 2 - TOP_OFFSET * 2;
-        settingsGB.style.top = leftPos;
-        int rightPos = (screenHeight - (int)appearanceGB.resolvedStyle.height) / 2 - TOP_OFFSET * 2;
-        appearanceGB.style.top = rightPos;
-        int txtPos = (screenHeight - (int)TextDescriptionGB.resolvedStyle.height) / 2 - TOP_OFFSET * 2;
-        TextDescriptionGB.style.top = txtPos > 0 ? txtPos : 0;
-
-        meinCamera.SetLeftRightProtectArea((int)settingsGB.resolvedStyle.width, 
-            screenWidth - (int)appearanceGB.resolvedStyle.width);
-
-        // The first several updates, for some reason, returns NaN (shouldn't Start and OnEnable be called first?).
-        // So only after the values become positive will the initial update be marked as complete. 
-        if (optionsGB.resolvedStyle.height > 0)
-            initialUpdated = true;
-    }
 
     /// <summary>
     /// Update the opacity of the entire visual element, including
@@ -364,7 +317,6 @@ public class UI_Operations : MonoBehaviour
                 && settingTransitioning)
             {
                 settingsGB.style.opacity = maxOpacity;
-                settingsGB.style.left = (int)settingFlyInDistance.y;
                 tapHandler.ProtectLeftArea();
                 meinCamera.ProtectLeftArea();
 
@@ -376,10 +328,7 @@ public class UI_Operations : MonoBehaviour
             {
                 float progression = Sigmoid(settingTransSW.ElapsedMilliseconds / (flyInTime * Globals.MILISECOND_IN_SEC));
 
-                leftPos = settingFlyInDistance.x + (settingFlyInDistance.y - settingFlyInDistance.x) * progression;
-
                 settingsGB.style.opacity = progression * maxOpacity;
-                settingsGB.style.left = (int)leftPos;
             }
         }
 
@@ -391,7 +340,6 @@ public class UI_Operations : MonoBehaviour
                 && settingTransitioning)
             {
                 settingsGB.style.opacity = 0;
-                settingsGB.style.left = (int)settingFlyInDistance.x;
 
                 // If no other elements are active, free the area 
                 if (!activeUI[Globals.UIElements.Text])
@@ -399,7 +347,6 @@ public class UI_Operations : MonoBehaviour
                     tapHandler.FreeLeftArea();
                     meinCamera.FreeLeftArea();
                 }
-                    
 
                 settingTransitioning = false;
             }
@@ -409,10 +356,7 @@ public class UI_Operations : MonoBehaviour
             {
                 float progression = Sigmoid(settingTransSW.ElapsedMilliseconds / (flyInTime * Globals.MILISECOND_IN_SEC));
 
-                leftPos = settingFlyInDistance.y + (settingFlyInDistance.x - settingFlyInDistance.y) * progression;
-
                 settingsGB.style.opacity = maxOpacity - progression * maxOpacity;
-                settingsGB.style.left = (int)leftPos;
             }
         }
 
@@ -472,7 +416,6 @@ public class UI_Operations : MonoBehaviour
             if (rightTransSW.ElapsedMilliseconds >= flyInTime * Globals.MILISECOND_IN_SEC && rightTransitioning)
             {
                 appearanceGB.style.opacity = maxOpacity;
-                appearanceGB.style.right = (int)rightFlyInDistance.y;
                 tapHandler.ProtectRightArea();
                 meinCamera.ProtectRightArea();
 
@@ -483,10 +426,7 @@ public class UI_Operations : MonoBehaviour
             {
                 float progression = Sigmoid((float)rightTransSW.ElapsedMilliseconds / (flyInTime * Globals.MILISECOND_IN_SEC));
 
-                rightPos = rightFlyInDistance.x + (rightFlyInDistance.y - rightFlyInDistance.x) * progression;
-
                 appearanceGB.style.opacity = progression * maxOpacity;
-                appearanceGB.style.right = (int)rightPos;
             }
         }
 
@@ -497,7 +437,6 @@ public class UI_Operations : MonoBehaviour
             if (rightTransSW.ElapsedMilliseconds >= flyInTime * Globals.MILISECOND_IN_SEC && rightTransitioning)
             {
                 appearanceGB.style.opacity = 0;
-                appearanceGB.style.right = (int)rightFlyInDistance.x;
                 tapHandler.FreeRightArea();
                 meinCamera.FreeRightArea();
 
@@ -508,10 +447,7 @@ public class UI_Operations : MonoBehaviour
             {
                 float progression = Sigmoid((float)rightTransSW.ElapsedMilliseconds / (flyInTime * Globals.MILISECOND_IN_SEC));
 
-                rightPos = rightFlyInDistance.y + (rightFlyInDistance.x - rightFlyInDistance.y) * progression;
-
                 appearanceGB.style.opacity = maxOpacity - progression * maxOpacity;
-                appearanceGB.style.right = (int)rightPos;
             }
         }
 
@@ -686,7 +622,6 @@ public class UI_Operations : MonoBehaviour
                 && textTransitioning)
             {
                 TextDescriptionGB.style.opacity = maxOpacity;
-                TextDescriptionGB.style.left = (int)textFlyInDistace.y;
                 tapHandler.ProtectLeftArea();
 
                 textTransitioning = false;
@@ -697,10 +632,7 @@ public class UI_Operations : MonoBehaviour
             {
                 float progression = Sigmoid(textTransSW.ElapsedMilliseconds / (flyInTime * Globals.MILISECOND_IN_SEC));
 
-                leftPos = textFlyInDistace.x + (textFlyInDistace.y - textFlyInDistace.x) * progression;
-
                 TextDescriptionGB.style.opacity = progression * maxOpacity;
-                TextDescriptionGB.style.left = (int)leftPos;
             }
         }
 
@@ -712,7 +644,6 @@ public class UI_Operations : MonoBehaviour
                 && textTransitioning)
             {
                 TextDescriptionGB.style.opacity = 0;
-                TextDescriptionGB.style.left = (int)textFlyInDistace.x;
 
                 // If no other elements are active, free the area 
                 if (!activeUI[Globals.UIElements.Settings]) 
@@ -726,10 +657,7 @@ public class UI_Operations : MonoBehaviour
             {
                 float progression = Sigmoid(textTransSW.ElapsedMilliseconds / (flyInTime * Globals.MILISECOND_IN_SEC));
 
-                leftPos = textFlyInDistace.y + (textFlyInDistace.x - textFlyInDistace.y) * progression;
-
                 TextDescriptionGB.style.opacity = maxOpacity - progression * maxOpacity;
-                TextDescriptionGB.style.left = (int)leftPos;
             }
         }
 
@@ -831,11 +759,13 @@ public class UI_Operations : MonoBehaviour
 
         // Convert from world space to the button's local space 
         Vector2 localPos = colorPickerButton.WorldToLocal(
-            new Vector2(currentTouchF1.position.x, currentTouchF1.position.y));
+            new Vector2(currentTouchF1.position.x, currentTouchF1.position.y + 256));
 
         // Local space's y is inverted and is biased due to the button margin. 
         // This invert the sign and offset the effect of the margin.
-        Vector2 translated = new Vector2(localPos.x, -localPos.y - DROPPER_TRANSFORM_OFFSET);
+        //Vector2 translated = new Vector2(localPos.x, -localPos.y - DROPPER_TRANSFORM_OFFSET);
+        Vector2 translated = new Vector2(localPos.x, -localPos.y);
+        
 
         AlterColor(translated / CHECKER_CHART_SIZE);
     }
@@ -851,11 +781,11 @@ public class UI_Operations : MonoBehaviour
 
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
         Vector2 localPos = colorPickerButton.WorldToLocal(
-            new Vector2(currentTouchF1.position.x, currentTouchF1.position.y));
+            new Vector2(currentTouchF1.position.x, currentTouchF1.position.y + 256));
 
         // If it's in the picker chart, then update the color
-        if(localPos.x > 0 && localPos.x < CHECKER_CHART_SIZE &&
-            localPos.y < -DROPPER_TRANSFORM_OFFSET && localPos.y > -(DROPPER_TRANSFORM_OFFSET + CHECKER_CHART_SIZE))
+        if (localPos.x > 0 && localPos.x < CHECKER_CHART_SIZE &&
+            localPos.y < 0 && localPos.y > -(CHECKER_CHART_SIZE))
         {
             ColorPicking();
         }
