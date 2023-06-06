@@ -491,6 +491,7 @@ MonoBehaviour:
   unselectedOpacity: 1
   topBottomNullArea: {x: 0, y: 256}
   leftRightNullArea: {x: 512, y: 1848}
+  newlySelected: 0
 --- !u!1 &842534520
 GameObject:
   m_ObjectHideFlags: 0
@@ -559,9 +560,6 @@ MonoBehaviour:
   maxOpacity: 0.8
   opacityThreshold: 0.02
   flyInTime: 0.5
-  settingFlyInDistance: {x: -512, y: 0}
-  textFlyInDistace: {x: -640, y: 0}
-  rightFlyInDistance: {x: -512, y: 0}
   highlightColor: {r: 1, g: 0.49829444, b: 0.32099998, a: 1}
   checkBoxDefault: {fileID: 21300000, guid: f59994c4564167d48a019c04e22a0827, type: 3}
   checkBoxChecked: {fileID: 21300000, guid: 58f13fe953178cd438e374c8dc99e3f3, type: 3}
@@ -957,6 +955,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   meinCamera: {fileID: 1390222729}
   tapHandler: {fileID: 820781860}
+  enableStartAnimation: 0
   allowTouchInterruption: 1
   maxOpacity: 0.9
   iconTintColor: {r: 1, g: 0.5048845, b: 0.27044016, a: 1}
@@ -1149,19 +1148,18 @@ MonoBehaviour:
   minimumDistance: 5
   maximumDistance: 50
   distanceSensityCoef: 1.7
-  touchRotateMagnify: 0.4
-  touchPinchMagnify: 5
-  touchPanMagnify: 1
+  touchRotateMagnify: 0.1
+  touchPinchMagnify: 1
+  touchPanMagnify: 0.25
   pinchActivationValue: 10
   startAnimationTime: 2
   idleStartPeriod: 5
   rotateClockWise: 0
   rotateSpeed: 20
   zoomSpeed: 20
-  selfAnimationMaxSpeed: 400
+  selfAnimationMaxSpeed: 100
   selfAnimationAcclerate: 1
   topBottomNullArea: {x: 0, y: 0}
-  leftRightNullArea: {x: 512, y: 1848}
   decoupleSliderOverdraft: 1
 --- !u!114 &1390222730
 MonoBehaviour:

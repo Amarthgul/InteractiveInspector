@@ -138,7 +138,6 @@ public class UI_HelpFunction : MonoBehaviour
     private IMGUIContainer arrowBottomSprite;
 
     private GroupBox helpInstructionsGB;
-    private GroupBox helpInstructionsSprite;
     private Label rotText;
     private Label panText;
     private Label zoomText;
@@ -183,7 +182,6 @@ public class UI_HelpFunction : MonoBehaviour
         root = GetComponent<UIDocument>().rootVisualElement;
 
         helpInstructionButton = root.Q<Button>("HelpButton");
-        //rand = root.Q<Button>("Rand");
         animeContainer = root.Q<GroupBox>("ContainerBox");
         animeSprite = animeContainer.Q<Button>("AnimationSprite");
         animeText = animeContainer.Q<Button>("AnimationText");
@@ -192,13 +190,11 @@ public class UI_HelpFunction : MonoBehaviour
         arrowBottomSprite = animeContainer.Q<IMGUIContainer>("ArrowBottom");
 
         helpInstructionsGB = root.Q<GroupBox>("HelpInstructions");
-        helpInstructionsSprite = helpInstructionsGB.Q<GroupBox>("ImageSprite");
         rotText  = helpInstructionsGB.Q<Label>("RotText");
         panText  = helpInstructionsGB.Q<Label>("PanText");
         zoomText = helpInstructionsGB.Q<Label>("ZoomText");
 
         helpInstructionButton.clicked += () => ToggleHelpInstructionDisplay();
-        //rand.clicked += () => ToggleHelpInstructionDisplay();
     }
 
     // Start is called before the first frame update
@@ -218,7 +214,6 @@ public class UI_HelpFunction : MonoBehaviour
         arrowTopSprite.style.opacity = 0;
 
         helpInstructionsGB.style.opacity = 0;
-        helpInstructionsGB.style.top = INSTRUCTION_GB_TOP; 
         rotText.text = rotDescription;
         panText.text = panDescription;
         zoomText.text = zoomDescription;
@@ -274,12 +269,6 @@ public class UI_HelpFunction : MonoBehaviour
         // Scale ratio between iPad Air 4th gen and current device 
         float ratio = screenWidth / Globals.iPadAir4thGen.y;
 
-        int leftOffset = (int)((screenWidth - Globals.iPadAir4thGen.y) / 2);
-        helpInstructionsSprite.style.left = leftOffset;
-        rotText.style.left = (int)(textPos[0] * ratio ); 
-        panText.style.left = (int)(textPos[1] * ratio );
-        zoomText.style.left = (int)(textPos[2] * ratio );
-
         TrotAnimStartPos = rotAnimStartPos * ratio;
         TrotAnimEndPos = rotAnimEndPos * ratio;
         TpanAnimStartPos = panAnimStartPos * ratio;
@@ -290,9 +279,6 @@ public class UI_HelpFunction : MonoBehaviour
         TzoomArrow1EndPos = zoomArrow1EndPos * ratio;
         TzoomArrow2StartPos = zoomArrow2StartPos * ratio;
         TzoomArrow2EndPos = zoomArrow2EndPos * ratio;
-
-        helpInstructionsGB.style.top = (int)((screenHeight - INSTRUCTION_GB_HEIGHT) / 2.0);
-
 
         // The first several updates, for some reason, returns NaN for size (shouldn't Start and OnEnable be called first?).
         // So only after the values become positive will the initial update be marked as complete. 
