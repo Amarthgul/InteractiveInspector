@@ -10,6 +10,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using Unity.VisualScripting;
 using static UnityEngine.UI.CanvasScaler;
+using static UnityEngine.Rendering.DebugUI.Table;
 
 public class UI_Operations : MonoBehaviour
 {
@@ -56,7 +57,7 @@ public class UI_Operations : MonoBehaviour
 
     [Tooltip("The maxmium opacity of elements. 1 is completely opaque.")]
     [Range(0f, 1f)]
-    [SerializeField] private float maxOpacity = .9f;
+    [SerializeField] private float maxOpacity = .95f;
 
     [Tooltip("For developers only. This threshold defines the value that will be "+
         "neglected if 2 opacity values' difference is below this.")]
@@ -104,7 +105,8 @@ public class UI_Operations : MonoBehaviour
 
     private VisualElement root;
 
-    private GroupBox optionsGB; 
+    private GroupBox optionsGB;
+    private GroupBox optionsBG; 
     private Button settingsButton;
     private Button textButton;
     private Button appearanceButton;
@@ -115,6 +117,7 @@ public class UI_Operations : MonoBehaviour
 
     private Button disableRotateButton;
     private Button disableVoiceoverButton;
+    private Button enableLightModeButton;
     private Slider touchSensSlider;
     private Button resetButton;
 
@@ -135,10 +138,6 @@ public class UI_Operations : MonoBehaviour
     private bool disableVoiceover = false;
 
     private float currentOpacity;  // Opacity for the base visual element 
-
-    // Left and right position during transitional animtions
-    private float leftPos;    
-    private float rightPos;
 
     // Bool flags for transitional animtions
     private bool settingTransitioning = false;
@@ -169,13 +168,17 @@ public class UI_Operations : MonoBehaviour
     // Dict recording the stats of the UIs, whether or not they are active. Initilized in `Start()`
     private Dictionary<Globals.UIElements, bool> activeUI = new Dictionary<Globals.UIElements, bool>();
 
-    private bool initialUpdated = false;
+    private bool lastLightModeStat = false;
+
+    private Color UITintColor = new Color();
+    private Color txtTintColor = new Color();
 
     private void OnEnable()
     {
         root = GetComponent<UIDocument>().rootVisualElement;
 
         optionsGB = root.Q<GroupBox>("OptionPanel"); 
+        optionsBG = root.Q<GroupBox>("OPBackground");
         settingsButton = root.Q<Button>("Settings");
         textButton = root.Q<Button>("Text");
         appearanceButton = root.Q<Button>("Appearance");
@@ -186,6 +189,7 @@ public class UI_Operations : MonoBehaviour
 
         disableRotateButton = settingsGB.Q<Button>("DisAutoRotToggle");
         disableVoiceoverButton = settingsGB.Q<Button>("DisVoiceToggle");
+        enableLightModeButton = settingsGB.Q<Button>("LightModeToggle");
         touchSensSlider = settingsGB.Q<Slider>("TouchSensSlider");
         resetButton = settingsGB.Q<Button>("ResetButton");
 
@@ -201,6 +205,7 @@ public class UI_Operations : MonoBehaviour
 
         disableRotateButton.clicked += () => ToggleAutoRotate();
         disableVoiceoverButton.clicked += () => ToggleVoiceOver();
+        enableLightModeButton.clicked += () => ToggleLightMode();
 
         playAudioButton.clicked += () => ManuallyPlayAudiop(); 
 
@@ -226,7 +231,9 @@ public class UI_Operations : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        UITintColor = Globals.darkModeUITint;
+        txtTintColor = Globals.darkModeTxtTint;
+        UpdateAllModeTintColors();
 
         activeUI = new Dictionary<Globals.UIElements, bool>() {
             { Globals.UIElements.Options, false },
@@ -251,6 +258,8 @@ public class UI_Operations : MonoBehaviour
         colorPickerButton.style.marginRight = CHECKER_CHART_MARGIN;
         colorPickerButton.style.backgroundImage = new StyleBackground(colorPcikerTexture);
 
+        
+
         SelectFillColor();
         SelectRimColor();
     }
@@ -260,6 +269,8 @@ public class UI_Operations : MonoBehaviour
     {
 
         UpdateVisbility();
+
+        UpdateTheme();
     }
 
     /// ===============================================================
@@ -527,6 +538,25 @@ public class UI_Operations : MonoBehaviour
     }
 
     /// <summary>
+    /// Enable or disable the light mode
+    /// </summary>
+    private void ToggleLightMode()
+    {
+
+        Globals.lightModeOn = !Globals.lightModeOn;
+
+        if (Globals.lightModeOn)
+        {
+            enableLightModeButton.style.backgroundImage = new StyleBackground(checkBoxChecked);
+
+        }
+        else
+        {
+            enableLightModeButton.style.backgroundImage = new StyleBackground(checkBoxDefault);
+        }
+    }
+
+    /// <summary>
     /// Read the touch sensitivity value and send it to the camera
     /// </summary>
     private void UpdateTouchSensitivity()
@@ -720,8 +750,8 @@ public class UI_Operations : MonoBehaviour
     private void SelectFillColor()
     {
         appearanceGB.style.backgroundImage = new StyleBackground(fillSelectedBG);
-        selectFillButton.style.color = defaultFontColor;
-        selectRimButton.style.color = dimFontColor; 
+        selectFillButton.style.color = Globals.lightModeOn? dimFontColor : defaultFontColor;
+        selectRimButton.style.color = Globals.lightModeOn ? defaultFontColor : dimFontColor; 
 
         isInFillSelect = true;
 
@@ -737,8 +767,8 @@ public class UI_Operations : MonoBehaviour
     private void SelectRimColor()
     {
         appearanceGB.style.backgroundImage = new StyleBackground(rimSelectedBG);
-        selectFillButton.style.color = dimFontColor;
-        selectRimButton.style.color = defaultFontColor;
+        selectFillButton.style.color = Globals.lightModeOn ? defaultFontColor : dimFontColor;
+        selectRimButton.style.color = Globals.lightModeOn ? dimFontColor : defaultFontColor;
 
         isInFillSelect = false;
 
@@ -831,6 +861,66 @@ public class UI_Operations : MonoBehaviour
 
     }
 
+    /// <summary>
+    /// Try to see if the mode has switched, and if so, update the color palette 
+    /// </summary>
+    private void UpdateTheme()
+    {
+
+        if (lastLightModeStat != Globals.lightModeOn) 
+        {
+            if (Globals.lightModeOn)
+            {
+                UITintColor = Globals.lightModeUITint;
+                txtTintColor = Globals.lightModeTxtTint;
+            }
+            else
+            {
+                UITintColor = Globals.darkModeUITint;
+                txtTintColor = Globals.darkModeTxtTint;
+            }
+            UpdateAllModeTintColors(); 
+        }
+
+        lastLightModeStat = Globals.lightModeOn; 
+    }
+
+    /// <summary>
+    /// Update all UI elements in this UI doc to the current color scheme 
+    /// </summary>
+    private void UpdateAllModeTintColors()
+    {
+        optionsBG.style.unityBackgroundImageTintColor = UITintColor;
+        settingsGB.style.unityBackgroundImageTintColor = UITintColor;
+        appearanceGB.style.unityBackgroundImageTintColor = UITintColor;
+        TextDescriptionGB.style.unityBackgroundImageTintColor = UITintColor;
+
+        disableRotateButton.style.unityBackgroundImageTintColor = txtTintColor;
+        disableVoiceoverButton.style.unityBackgroundImageTintColor = txtTintColor;
+        enableLightModeButton.style.unityBackgroundImageTintColor = txtTintColor;
+
+        objectTitle.style.color = txtTintColor;
+        objectDescription.style.color = txtTintColor;
+
+        // Unused elements are found and called during runtime 
+        root.Q<Label>("SettingLabel").style.color = txtTintColor;
+        root.Q<Label>("DisAutoRotTxt").style.color = txtTintColor;
+        root.Q<Label>("DisVoiceTxt").style.color = txtTintColor;
+        root.Q<Label>("TouchSensitivityTxt").style.color = txtTintColor;
+        root.Q<Label>("LightModeTxt").style.color = txtTintColor;
+        root.Q<Label>("VisualLabel").style.color = txtTintColor;
+        root.Q<Label>("TextSO").style.color = txtTintColor;
+        root.Q<Label>("TextUO").style.color = txtTintColor;
+        root.Q<Button>("SelectFill").style.color = txtTintColor;
+        root.Q<Button>("SelectRim").style.color = txtTintColor;
+
+        selectFillButton.style.color = Globals.lightModeOn ? dimFontColor : defaultFontColor;
+        selectRimButton.style.color = Globals.lightModeOn ? dimFontColor : defaultFontColor;
+        if (isInFillSelect)
+            selectRimButton.style.color = Globals.lightModeOn ? defaultFontColor : dimFontColor;
+        else
+            selectFillButton.style.color = Globals.lightModeOn ? defaultFontColor : dimFontColor;
+    }
 
     /// ===============================================================
     /// ======================= Utility Methods =======================

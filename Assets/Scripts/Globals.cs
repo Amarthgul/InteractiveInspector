@@ -2,8 +2,18 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Globals 
+public class Globals : MonoBehaviour
 {
+
+
+    public static Color lightModeUITint = Color.white;
+    public static Color lightModeTxtTint = new Color(.1f, .1f, .1f);
+
+    public static Color darkModeUITint = new Color(.1f, .1f, .1f);
+    public static Color darkModeTxtTint = new Color(.9f, .9f, .9f);
+
+    public static bool lightModeOn = false; 
+
 
     // 1000 milisecond in a second, used to convert second to milisecond 
     public const int MILISECOND_IN_SEC = 1000;

@@ -396,11 +396,12 @@ public class CameraControl : MonoBehaviour
     /// <summary>
     /// Set the left and right bound beyond which the app cease to respond to touch
     /// </summary>
-    /// <param name="left">Smaller than this value will not trigger response</param>
-    /// <param name="right">Bigger than this value will not trigger response</param>
+    /// <param name="left"> Width of left protect area response</param>
+    /// <param name="right"> Width of right protect area</param>
     public void SetLeftRightProtectArea(int left, int right)
     {
-        leftRightNullArea = new Vector2(left, right);
+        
+        leftRightNullArea = new Vector2(left, Screen.width - right);
     }
 
     /// ===============================================================
