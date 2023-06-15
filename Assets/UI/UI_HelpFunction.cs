@@ -57,7 +57,6 @@ public class UI_HelpFunction : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField] float maxOpacity = .9f;
 
-    [SerializeField] Color iconTintColor = Color.white;
 
     [Tooltip("For developers only. This threshold defines the value that will be " +
         "neglected if 2 opacity values' difference is below this.")]
@@ -148,7 +147,7 @@ public class UI_HelpFunction : MonoBehaviour
         panText.text = panInstruction;
         zoomText.text = zoomInstruction;
 
-        meinCamera.SetLeftRightProtectArea(512, 512); 
+        
     }
 
     // Update is called once per frame
@@ -190,7 +189,7 @@ public class UI_HelpFunction : MonoBehaviour
             helpPanelTransitioning = true;
             progressionSW.Restart();
 
-            helpInstructionButton.style.unityBackgroundImageTintColor = iconTintColor;
+            helpInstructionButton.style.unityBackgroundImageTintColor = Globals.buckeyeHighlight;
         }
     }
 
@@ -303,7 +302,7 @@ public class UI_HelpFunction : MonoBehaviour
         /// </summary>
         /// <param name="valueX">Input X value, ideally in [0, 1]</param>
         /// <returns>A value in [0, 1]</returns>
-        private float Sigmoid(float valueX)
+    private float Sigmoid(float valueX)
     {
         return 1 / (1 + Mathf.Exp(-10 * (valueX - 0.5f)));
     }

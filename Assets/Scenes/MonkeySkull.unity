@@ -556,11 +556,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   tapHandler: {fileID: 820781860}
   meinCamera: {fileID: 1390222729}
+  panelAlwaysVisible: 1
   fadeSpeed: 1
   maxOpacity: 0.8
   opacityThreshold: 0.02
   flyInTime: 0.5
-  highlightColor: {r: 1, g: 0.49829444, b: 0.32099998, a: 1}
   checkBoxDefault: {fileID: 21300000, guid: f59994c4564167d48a019c04e22a0827, type: 3}
   checkBoxChecked: {fileID: 21300000, guid: 58f13fe953178cd438e374c8dc99e3f3, type: 3}
   colorPcikerTexture: {fileID: 21300000, guid: 948fde9e31c4b524198fe913e7b556e1, type: 3}
@@ -977,7 +977,6 @@ MonoBehaviour:
   enableStartAnimation: 0
   allowTouchInterruption: 1
   maxOpacity: 0.9
-  iconTintColor: {r: 1, g: 0.5048845, b: 0.27044016, a: 1}
   opacityThreshold: 0.02
   fadeTime: 1
   initialDelay: 6

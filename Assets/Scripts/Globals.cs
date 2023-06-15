@@ -80,4 +80,17 @@ public class Globals : MonoBehaviour
     /// </summary>
     public enum Side { Top, Bottom, Left, Right }
 
+
+    /// <summary>
+    /// Random number generator for all classes to use. 
+    /// Try use this for all RNG, since creating RNG everytime it's needed may cause
+    /// same or similar numbers to be generated due to the seed issue. 
+    /// </summary>
+    public static System.Random RNG = new System.Random();
+
+    /// <summary>
+    /// Color from the OSU Brand Guide > Visual Design > Color > Scarlet
+    /// </summary>
+    public static Color buckeyeHighlight = new Color(.7294f, .047f, .1843f, 1);
+
 }

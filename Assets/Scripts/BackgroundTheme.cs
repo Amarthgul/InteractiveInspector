@@ -9,10 +9,13 @@ public class BackgroundTheme : MonoBehaviour
 
     [SerializeField] Image thisImage;
 
+    [Tooltip("Image to be used as background for dark mode")]
     [SerializeField] private Sprite darkModeBackground;
 
+    [Tooltip("Image to be used as background for light mode")]
     [SerializeField] private Sprite lightModeBackground;
 
+    // Last recorded light mode on/off status
     private bool lastLightModeStat = false;
 
     // Start is called before the first frame update
@@ -30,6 +33,9 @@ public class BackgroundTheme : MonoBehaviour
 
     }
 
+    /// <summary>
+    /// Check if the theme changes and change background accrodingly.
+    /// </summary>
     private void UpdateTheme()
     {
 
@@ -43,10 +49,10 @@ public class BackgroundTheme : MonoBehaviour
             {
                 thisImage.sprite = darkModeBackground;
             }
-            
+            lastLightModeStat = Globals.lightModeOn;
         }
 
-        lastLightModeStat = Globals.lightModeOn;
+        
     }
 
 

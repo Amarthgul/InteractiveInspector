@@ -33,6 +33,9 @@ public class CameraControl : MonoBehaviour
     // Offset input of the speed function to approximate starting from 0 
     private const float SPEED_FUNCTION_OFFSET = 3;
 
+    // Camera cannot look up or down more than this angle 
+    private const float MAX_PITCH_ANGLE = 87; 
+
     /// ===============================================================
     /// ==================== Serialized variables ===================== 
 
@@ -177,7 +180,6 @@ public class CameraControl : MonoBehaviour
     [SerializeField] Vector2 topBottomNullArea = Vector2.zero;
 
     
-
     [Tooltip("When using the slider in UI, it is possible to drastically rotate the mdoel " +
         "when finger goes outside of the UI area. Enable this option to nullify rotate when " +
         "operating the slider or the color picker")]
@@ -628,6 +630,7 @@ public class CameraControl : MonoBehaviour
         lastFingerAverage = fingerAverage; 
 
         RegulateDistance();
+        RegulateAngle();
     }
 
     /// <summary>
@@ -687,6 +690,26 @@ public class CameraControl : MonoBehaviour
         float difference = currentDistance - targetDistance;
         Vector3 offset = thisCamera.transform.forward.normalized * difference;
         thisCamera.transform.Translate(offset, Space.World);
+    }
+
+    /// <summary>
+    /// Check the camera angle, if it's too steep, put it back into range. 
+    /// </summary>
+    private void RegulateAngle()
+    {
+        float pitch = thisCamera.transform.rotation.eulerAngles.x;
+        Vector3 rot = thisCamera.transform.rotation.eulerAngles; 
+
+        if (pitch > MAX_PITCH_ANGLE)
+        {
+            thisCamera.transform.rotation = Quaternion.Euler(new Vector3(MAX_PITCH_ANGLE, rot.y, rot.z));
+        }
+
+        if (pitch < -MAX_PITCH_ANGLE)
+        {
+            thisCamera.transform.rotation = Quaternion.Euler(new Vector3(-MAX_PITCH_ANGLE, rot.y, rot.z));
+        }
+
     }
 
     /// <summary>
@@ -825,7 +848,7 @@ public class CameraControl : MonoBehaviour
     }
 
     /// <summary>
-    /// Given an input position, check with active areas to see if its position is valid.
+    /// Check the touch position, check with active areas to see if its position is valid.
     /// </summary>
     /// <param name="position">Vec2 position in screen space</param>
     /// <returns>True if the position is in active area</returns>
@@ -869,9 +892,9 @@ public class CameraControl : MonoBehaviour
     {
         float upDownAngle = Math.Abs(thisCamera.transform.rotation.eulerAngles.x);
 
-        if (upDownAngle > 90)
-            upDownAngle = 90 - (upDownAngle % 90);
-        float modifier = 1 - (float)Math.Pow((upDownAngle / 90), 4);
+        if (upDownAngle > MAX_PITCH_ANGLE)
+            upDownAngle = MAX_PITCH_ANGLE - (upDownAngle % MAX_PITCH_ANGLE);
+        float modifier = 1 - (float)Math.Pow((upDownAngle / MAX_PITCH_ANGLE), 4);
 
         return modifier;
     }

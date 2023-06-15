@@ -29,12 +29,13 @@ public class UI_Operations : MonoBehaviour
     // This is used to correct its location so that the center follows touch control. 
     private const int DROPPER_OFFSET = 32;
 
+
+
     // This is purely a magical number obtained by observation.
     // The y position of the dropper circle when translated from world
-    // to local has a bias of roughly 90 pixels.
-    // I assume this has something to do with 32 + 64, despite this
-    // combination makes no sense, it works, so here it is. 
-    private const int DROPPER_TRANSFORM_OFFSET = 96;
+    // to local has a bias of roughly 250 pixels. This also changes with
+    // screen vertical size, the larger the size, the more it offsets. 
+    private const int DROPPER_TRANSFORM_OFFSET = 256;
 
     // This space is to move the UI down to make what's underneath this one selectable.
     // Otherwise, this UI will cover everthing and render other layers useless. 
@@ -46,6 +47,9 @@ public class UI_Operations : MonoBehaviour
     [SerializeField] TapHandler tapHandler;
 
     [SerializeField] CameraControl meinCamera; // Das war ein befehl!
+
+    [Tooltip("When checked, the bottom option panel will always remain visible.")]
+    [SerializeField] private bool panelAlwaysVisible = true;
 
     [Space(15)]
     [Header("Animations")]
@@ -71,8 +75,6 @@ public class UI_Operations : MonoBehaviour
     [Header("Display and sprites")]
     [Space(10)]
 
-    [Tooltip("Icons tint to this color when selected")]
-    [SerializeField] private Color highlightColor = new Color();
 
     [Tooltip("The default checkbox sprite")]
     [SerializeField] private Sprite checkBoxDefault;
@@ -115,12 +117,16 @@ public class UI_Operations : MonoBehaviour
     private GroupBox appearanceGB;
     private GroupBox TextDescriptionGB;
 
+    private GroupBox settingEmptyView;
+    private GroupBox settingSelectedView;
     private Button disableRotateButton;
-    private Button disableVoiceoverButton;
+    private Button autoVoiceoverButton;
     private Button enableLightModeButton;
     private Slider touchSensSlider;
     private Button resetButton;
 
+    private GroupBox appearanceEmptyView;
+    private GroupBox appearanceSelectedView;
     private Slider selectedOpaSlider;
     private Slider unselectedOpaSlider;
     private Button colorPickerButton;
@@ -128,6 +134,8 @@ public class UI_Operations : MonoBehaviour
     private Button selectRimButton;
     private IMGUIContainer pickerIcon;
 
+    private GroupBox TextDescriptionEmptyView;
+    private GroupBox TextDescriptionSelectedView;
     private Label objectTitle;
     private Label objectDescription;
     private Button playAudioButton;
@@ -135,7 +143,7 @@ public class UI_Operations : MonoBehaviour
     private AudioClip currentAudio; // Audio for the currently selected object, if there are any
 
     private bool disableAutoRotate = false;
-    private bool disableVoiceover = false;
+    private bool autoVoiceover = false;
 
     private float currentOpacity;  // Opacity for the base visual element 
 
@@ -187,14 +195,18 @@ public class UI_Operations : MonoBehaviour
         appearanceGB = root.Q<GroupBox>("VisualSettings");
         TextDescriptionGB = root.Q<GroupBox>("TextDescription");
 
+        settingEmptyView = settingsGB.Q<GroupBox>("CaseEmpty");
+        settingSelectedView = settingsGB.Q<GroupBox>("CaseSelected");
         disableRotateButton = settingsGB.Q<Button>("DisAutoRotToggle");
-        disableVoiceoverButton = settingsGB.Q<Button>("DisVoiceToggle");
+        autoVoiceoverButton = settingsGB.Q<Button>("DisVoiceToggle");
         enableLightModeButton = settingsGB.Q<Button>("LightModeToggle");
         touchSensSlider = settingsGB.Q<Slider>("TouchSensSlider");
         resetButton = settingsGB.Q<Button>("ResetButton");
 
-        resetButton.clicked += () => ResetClicked(); 
+        resetButton.clicked += () => ResetClicked();
 
+        TextDescriptionEmptyView = TextDescriptionGB.Q<GroupBox>("CaseEmpty");
+        TextDescriptionSelectedView = TextDescriptionGB.Q<GroupBox>("CaseSelected");
         objectTitle = TextDescriptionGB.Q<Label>("Title");
         objectDescription = TextDescriptionGB.Q<Label>("Description");
         playAudioButton = TextDescriptionGB.Q<Button>("PlaySoundButton"); 
@@ -204,11 +216,13 @@ public class UI_Operations : MonoBehaviour
         appearanceButton.clicked += () => ToggleAppearanceGB();
 
         disableRotateButton.clicked += () => ToggleAutoRotate();
-        disableVoiceoverButton.clicked += () => ToggleVoiceOver();
+        autoVoiceoverButton.clicked += () => ToggleVoiceOver();
         enableLightModeButton.clicked += () => ToggleLightMode();
 
-        playAudioButton.clicked += () => ManuallyPlayAudiop(); 
+        playAudioButton.clicked += () => ManuallyPlayAudiop();
 
+        appearanceEmptyView = appearanceGB.Q<GroupBox>("CaseEmpty");
+        appearanceSelectedView = appearanceGB.Q<GroupBox>("CaseSelected");
         selectedOpaSlider = appearanceGB.Q<Slider>("SelectedOpacitySlider");
         unselectedOpaSlider = appearanceGB.Q<Slider>("UnselectedOpacitySlider");
         colorPickerButton = appearanceGB.Q<Button>("ColorPicker");
@@ -231,16 +245,19 @@ public class UI_Operations : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        UITintColor = Globals.darkModeUITint;
-        txtTintColor = Globals.darkModeTxtTint;
-        UpdateAllModeTintColors();
-
+        
         activeUI = new Dictionary<Globals.UIElements, bool>() {
             { Globals.UIElements.Options, false },
             { Globals.UIElements.Settings, false },
             { Globals.UIElements.Text, false },
             { Globals.UIElements.Appearance, false }
         };
+
+
+        UITintColor = Globals.darkModeUITint;
+        txtTintColor = Globals.darkModeTxtTint;
+        UpdateAllModeTintColors();
+
 
         currentOpacity = 0;
         root.style.opacity = currentOpacity;
@@ -249,6 +266,7 @@ public class UI_Operations : MonoBehaviour
         appearanceGB.style.opacity = 0;
         TextDescriptionGB.style.opacity = 0;
 
+        // Put the color picker dot to the right place 
         colorPickerButton.style.top = COLOR_PICKER_OFFSET;
         colorPickerButton.style.width = CHECKER_CHART_SIZE;
         colorPickerButton.style.height = CHECKER_CHART_SIZE;
@@ -271,6 +289,10 @@ public class UI_Operations : MonoBehaviour
         UpdateVisbility();
 
         UpdateTheme();
+
+        // Protected area is updated constantly to reflect
+        // the change in direction (landscape and portrait mode)
+        meinCamera.SetLeftRightProtectArea(512, 512);
     }
 
     /// ===============================================================
@@ -285,9 +307,10 @@ public class UI_Operations : MonoBehaviour
     /// </summary>
     private void UpdateVisbility()
     {
-        if (tapHandler.HasSelected())
+        if (tapHandler.HasSelected() || panelAlwaysVisible)
         {
-            // When something is selected, fade in the UIs
+            // When something is selected or the panel is set to be always visible,
+            // fade in and show the selection panel UIs
             currentOpacity += fadeSpeed * Time.deltaTime;
             if (currentOpacity >= maxOpacity - opacityThreshold)
             {
@@ -297,7 +320,7 @@ public class UI_Operations : MonoBehaviour
         }
         else
         {
-            // If nothing is slected, fade out the UIs 
+            // If nothing is slected and the panel is not set to always show up, fade out the UIs 
             currentOpacity -= fadeSpeed * Time.deltaTime;
             if (currentOpacity <= INVISIBLE + opacityThreshold)
             {
@@ -311,8 +334,9 @@ public class UI_Operations : MonoBehaviour
         UpdateSettingsGB();
         UpdateAppearanceGB();
         UpdateTextGB();
+        UpdateEmpty();
 
-        
+
     }
 
     /// <summary>
@@ -390,7 +414,7 @@ public class UI_Operations : MonoBehaviour
             activeUI[Globals.UIElements.Settings] = false;
             if (!settingTransitioning)
             {
-                settingsButton.style.unityBackgroundImageTintColor = Color.white;
+                settingsButton.style.unityBackgroundImageTintColor = txtTintColor;
                 settingTransitioning = true;
                 settingTransSW.Restart();
             }
@@ -406,7 +430,7 @@ public class UI_Operations : MonoBehaviour
             activeUI[Globals.UIElements.Settings] = true;
             if (!settingTransitioning)
             {
-                settingsButton.style.unityBackgroundImageTintColor = highlightColor;
+                settingsButton.style.unityBackgroundImageTintColor = Globals.buckeyeHighlight;
                 settingTransitioning = true;
                 settingTransSW.Restart();
             }
@@ -480,7 +504,7 @@ public class UI_Operations : MonoBehaviour
             activeUI[Globals.UIElements.Appearance] = false;
             if (!rightTransitioning)
             {
-                appearanceButton.style.unityBackgroundImageTintColor = Color.white;
+                appearanceButton.style.unityBackgroundImageTintColor = txtTintColor;
                 rightTransitioning = true;
                 rightTransSW.Restart();
             }
@@ -488,10 +512,11 @@ public class UI_Operations : MonoBehaviour
         // Turn on setting panel 
         else
         {
+
             activeUI[Globals.UIElements.Appearance] = true;
             if (!rightTransitioning)
             {
-                appearanceButton.style.unityBackgroundImageTintColor = highlightColor;
+                appearanceButton.style.unityBackgroundImageTintColor = Globals.buckeyeHighlight;
                 //settingsButton.style.backgroundImage = new StyleBackground(background);
                 rightTransitioning = true;
                 rightTransSW.Restart();
@@ -524,16 +549,16 @@ public class UI_Operations : MonoBehaviour
     /// </summary>
     private void ToggleVoiceOver()
     {
-        disableVoiceover = !disableVoiceover;
+        autoVoiceover = !autoVoiceover;
 
-        if (disableVoiceover)
+        if (autoVoiceover)
         {
-            disableVoiceoverButton.style.backgroundImage = new StyleBackground(checkBoxChecked);
+            autoVoiceoverButton.style.backgroundImage = new StyleBackground(checkBoxChecked);
 
         }
         else
         {
-            disableVoiceoverButton.style.backgroundImage = new StyleBackground(checkBoxDefault);
+            autoVoiceoverButton.style.backgroundImage = new StyleBackground(checkBoxDefault);
         }
     }
 
@@ -572,7 +597,7 @@ public class UI_Operations : MonoBehaviour
         if (disableAutoRotate)
             ToggleAutoRotate();
 
-        if (disableVoiceover)
+        if (autoVoiceover)
             ToggleVoiceOver();
 
         meinCamera.ExternalReset();
@@ -591,7 +616,7 @@ public class UI_Operations : MonoBehaviour
             // After stopwatch counts beyond resetButtonTintTime, calculation stops and thus
             // does not need to judge whether or not the color goes beyond 1
             float progression = Sigmoid((float)resetButtonTintSW.ElapsedMilliseconds / resetButtonTintTime);
-            Color currentColor = progression * Color.white + (1 - progression) * highlightColor;
+            Color currentColor = progression * Color.white + (1 - progression) * Globals.buckeyeHighlight;
 
             resetButton.style.unityBackgroundImageTintColor = currentColor;
         }
@@ -605,17 +630,22 @@ public class UI_Operations : MonoBehaviour
         // Turn off text panel 
         if (activeUI[Globals.UIElements.Text])
         {
+
+            // First mark this panel as turned off 
             activeUI[Globals.UIElements.Text] = false;
             if (!textTransitioning)
             {
-                textButton.style.unityBackgroundImageTintColor = Color.white;
+                // If it has not started the transition animation, start it  
+                textButton.style.unityBackgroundImageTintColor = txtTintColor;
                 textTransitioning = true;
                 textTransSW.Restart();
             }
         }
+
         // Turn on text panel 
         else
         {
+
             // Text and setting occupy the same space and are thus exclusive.
             // Turn off one when the other is active 
             if (activeUI[Globals.UIElements.Settings])
@@ -623,8 +653,8 @@ public class UI_Operations : MonoBehaviour
 
             RefreshTexts();
 
-            // If auto-play is not disabled, then play the audio once the text panel shows up
-            if (!disableVoiceover) 
+            // If auto-play is enabled, then play the audio once the text panel shows up
+            if (autoVoiceover) 
             {
                 ManuallyPlayAudiop(); 
             }
@@ -632,7 +662,7 @@ public class UI_Operations : MonoBehaviour
             activeUI[Globals.UIElements.Text] = true;
             if (!textTransitioning)
             {
-                textButton.style.unityBackgroundImageTintColor = highlightColor;
+                textButton.style.unityBackgroundImageTintColor = Globals.buckeyeHighlight;
                 textTransitioning = true;
                 textTransSW.Restart();
             }
@@ -697,7 +727,7 @@ public class UI_Operations : MonoBehaviour
             // After stopwatch counts beyond playSoundTintTime, calculation stops and thus
             // does not need to judge whether or not the color goes beyond 1
             float progression = Sigmoid((float)playSoundTintSW.ElapsedMilliseconds / playSoundTintTime);
-            Color currentColor = progression * Color.white + (1 - progression) * highlightColor;
+            Color currentColor = progression * Color.white + (1 - progression) * Globals.buckeyeHighlight;
 
             playAudioButton.style.unityBackgroundImageTintColor = currentColor;
         }
@@ -740,7 +770,7 @@ public class UI_Operations : MonoBehaviour
             playSoundTintSW.Restart();
 
             // Change the tint color of the icon to highlight press event 
-            playAudioButton.style.unityBackgroundImageTintColor = highlightColor;
+            playAudioButton.style.unityBackgroundImageTintColor = Globals.buckeyeHighlight;
         }
     }
 
@@ -789,7 +819,7 @@ public class UI_Operations : MonoBehaviour
 
         // Convert from world space to the button's local space 
         Vector2 localPos = colorPickerButton.WorldToLocal(
-            new Vector2(currentTouchF1.position.x, currentTouchF1.position.y + 256));
+            new Vector2(currentTouchF1.position.x, currentTouchF1.position.y + DROPPER_TRANSFORM_OFFSET));
 
         // Local space's y is inverted and is biased due to the button margin. 
         // This invert the sign and offset the effect of the margin.
@@ -811,7 +841,7 @@ public class UI_Operations : MonoBehaviour
 
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
         Vector2 localPos = colorPickerButton.WorldToLocal(
-            new Vector2(currentTouchF1.position.x, currentTouchF1.position.y + 256));
+            new Vector2(currentTouchF1.position.x, currentTouchF1.position.y + DROPPER_TRANSFORM_OFFSET));
 
         // If it's in the picker chart, then update the color
         if (localPos.x > 0 && localPos.x < CHECKER_CHART_SIZE &&
@@ -890,19 +920,22 @@ public class UI_Operations : MonoBehaviour
     /// </summary>
     private void UpdateAllModeTintColors()
     {
+        // Change the color of the already named elements 
         optionsBG.style.unityBackgroundImageTintColor = UITintColor;
         settingsGB.style.unityBackgroundImageTintColor = UITintColor;
         appearanceGB.style.unityBackgroundImageTintColor = UITintColor;
         TextDescriptionGB.style.unityBackgroundImageTintColor = UITintColor;
 
         disableRotateButton.style.unityBackgroundImageTintColor = txtTintColor;
-        disableVoiceoverButton.style.unityBackgroundImageTintColor = txtTintColor;
+        autoVoiceoverButton.style.unityBackgroundImageTintColor = txtTintColor;
         enableLightModeButton.style.unityBackgroundImageTintColor = txtTintColor;
+
+        playAudioButton.style.unityBackgroundImageTintColor = txtTintColor;
 
         objectTitle.style.color = txtTintColor;
         objectDescription.style.color = txtTintColor;
 
-        // Unused elements are found and called during runtime 
+        // Elements unused in scripts are found and called during runtime 
         root.Q<Label>("SettingLabel").style.color = txtTintColor;
         root.Q<Label>("DisAutoRotTxt").style.color = txtTintColor;
         root.Q<Label>("DisVoiceTxt").style.color = txtTintColor;
@@ -913,13 +946,51 @@ public class UI_Operations : MonoBehaviour
         root.Q<Label>("TextUO").style.color = txtTintColor;
         root.Q<Button>("SelectFill").style.color = txtTintColor;
         root.Q<Button>("SelectRim").style.color = txtTintColor;
+        TextDescriptionEmptyView.Q<Label>("ReminderTxt").style.color = txtTintColor;
+        settingEmptyView.Q<Label>("ReminderTxt").style.color = txtTintColor;
+        appearanceEmptyView.Q<Label>("ReminderTxt").style.color = txtTintColor;
 
+        // Update the fill and rim light text, condition is needed since they have 
+        // different colors depending on which one is selected. 
         selectFillButton.style.color = Globals.lightModeOn ? dimFontColor : defaultFontColor;
         selectRimButton.style.color = Globals.lightModeOn ? dimFontColor : defaultFontColor;
         if (isInFillSelect)
             selectRimButton.style.color = Globals.lightModeOn ? defaultFontColor : dimFontColor;
         else
             selectFillButton.style.color = Globals.lightModeOn ? defaultFontColor : dimFontColor;
+
+        // Change the color of the icons
+        // Since some icons may be selected and highlighted, only 
+        // change the icons that are not currently being selected. 
+        if (!activeUI[Globals.UIElements.Appearance])
+            appearanceButton.style.unityBackgroundImageTintColor = txtTintColor;
+        if (!activeUI[Globals.UIElements.Settings])
+            settingsButton.style.unityBackgroundImageTintColor = txtTintColor;
+        if (!activeUI[Globals.UIElements.Text])
+            textButton.style.unityBackgroundImageTintColor = txtTintColor;
+
+    }
+
+    private void UpdateEmpty()
+    {
+        if (tapHandler.HasSelected())
+        {
+            TextDescriptionEmptyView.style.opacity = 0;
+            TextDescriptionSelectedView.style.opacity = maxOpacity;
+            appearanceEmptyView.style.opacity = 0;
+            appearanceSelectedView.style.opacity = maxOpacity;
+            settingEmptyView.style.opacity = 0;
+            settingSelectedView.style.opacity = maxOpacity;
+        }
+        else
+        {
+            TextDescriptionEmptyView.style.opacity = maxOpacity;
+            TextDescriptionSelectedView.style.opacity = 0;
+            appearanceEmptyView.style.opacity = maxOpacity;
+            appearanceSelectedView.style.opacity = 0;
+            settingEmptyView.style.opacity = maxOpacity;
+            settingSelectedView.style.opacity = 0;
+        }
     }
 
     /// ===============================================================
