@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using System.Diagnostics;
 using Debug = UnityEngine.Debug;
-using static UnityEditor.Experimental.GraphView.Port;
 
 public class MainMenu : MonoBehaviour
 {

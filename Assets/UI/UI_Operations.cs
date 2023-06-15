@@ -9,8 +9,6 @@ using Debug = UnityEngine.Debug;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using Unity.VisualScripting;
-using static UnityEngine.UI.CanvasScaler;
-using static UnityEngine.Rendering.DebugUI.Table;
 
 public class UI_Operations : MonoBehaviour
 {

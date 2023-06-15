@@ -7,11 +7,6 @@ using UnityEngine.UIElements;
 using Unity.VisualScripting;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
-using UnityEditor.Experimental;
-using UnityEngine.XR;
-using static UnityEngine.Rendering.DebugUI.MessageBox;
-using UnityEditor.Rendering.LookDev;
-using UnityEngine.Rendering;
 
 // Pretty much hand animating the entire thing by giving hard positional data. 
 public class UI_HelpFunction : MonoBehaviour
