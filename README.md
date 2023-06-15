@@ -7,7 +7,7 @@
 This repo inherits much of the concepts from [this repo](https://github.com/cs-isamiul/Interactive-Anatomy-Visualization-Demo),
 but took a different implemntation and is built for iOS platform. 
 
-This branch is different from the main as it is built to adaptive different devices and resoultions  
+This branch (adaptive UI) is different from the main as it is built to adaptive different devices and resoultions  
 at the price of no longer supporting fly-in and fly-out animations. Idealy, this version would be able
 to work on both iOS and on browser as an WebGL application. 
 
@@ -75,11 +75,24 @@ will alter the name disaplyed during runtime.
 
 ## Dev Log 
 
+* June 25th 
+
+  The bottom panel now disaplys permanently (can still be toggled by unchecking the always show option in inspector). 
+  When nothing is selected and a panel box is invoked, it will say select to begin. 
+
+  Select highlight now uses the Buckeye theme from the brand guideline page. 
+
+* June 8th
+
+  Now supports light theme (UIs become bright white while texts and icons becomes dark), 
+  UI also adapts to different screen size and orientation (limited to iPad). 
+
+
 * May 30th 
 
   Fixed the issue where momentum will lead the camera to rotate fanatically around the vertical axis. 
 
-  Added portrait mode suport. 
+  Added some portrait mode suport. 
 
 
 * May 23rd 
