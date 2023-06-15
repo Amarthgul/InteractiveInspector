@@ -5,9 +5,6 @@ using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using System.Diagnostics;
 using UnityEngine.InputSystem.LowLevel;
-using Unity.VisualScripting;
-using UnityEngine.Rendering;
-using System.Linq;
 using Debug = UnityEngine.Debug;
 using System;
 using UnityEngine.UIElements;
@@ -32,8 +29,12 @@ public class CameraControl : MonoBehaviour
     // Offset input of the speed function to approximate starting from 0 
     private const float SPEED_FUNCTION_OFFSET = 3;
 
+    // Used to calculate a coefficient that slows up the camera movement
+    // as it approaches the vertical axis
+    private const float PITCH_LIMIT = 90f; 
+
     // Camera cannot look up or down more than this angle 
-    private const float MAX_PITCH_ANGLE = 87; 
+    private const float NO_FLY_CONE_ANGLE = 20; 
 
     /// ===============================================================
     /// ==================== Serialized variables ===================== 
@@ -44,6 +45,7 @@ public class CameraControl : MonoBehaviour
 
     [SerializeField] private Camera thisCamera;
 
+    [SerializeField] private GameObject probe;
 
     /// ======================= Basic operation =======================   
 
@@ -219,6 +221,12 @@ public class CameraControl : MonoBehaviour
     private float lastFingerDist = 0;
     private Vector2 lastFingerAverage = new Vector2();
 
+    private Vector3 stagedMovement = new Vector3();
+
+    private float angleRegulationCoef = 0;
+    private bool overshot = false; 
+    private Vector3 correction = new Vector3();
+
     private bool touchPinchFlag = false; // Flag this true if pinch is detected 
     private bool touchPanFlag = false;   // Flag this true if pan is detected 
      
@@ -278,6 +286,8 @@ public class CameraControl : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        
+
         lookAtPosOffset = new Vector3(0, targetHeightOffset, 0);
 
         if (USE_START_ANIMATION)
@@ -307,6 +317,7 @@ public class CameraControl : MonoBehaviour
         else
         {
             UpdateTouchControl();
+            RegulateAngle(); 
 
             UpdateState();
             UpdateSelfAnimation();
@@ -585,15 +596,17 @@ public class CameraControl : MonoBehaviour
             // During a camera rotation operation, first calculates delta 
             singleFingerDelta = lastPositionF1 - touchPosF1;
 
-            // Apply the delta 
-            thisCamera.transform.Translate(
-                new Vector3(singleFingerDelta.x, singleFingerDelta.y, 0) * Time.deltaTime * 
+            stagedMovement = new Vector3(singleFingerDelta.x, singleFingerDelta.y, 0) * Time.deltaTime *
                 cameraRotationDamper * touchRotateMagnify * (1 + sensitivityMod)
-                * (1 + globalSensitivityControl) * ElevationModifier(),
-                Space.Self);
+                * (1 + globalSensitivityControl) * ElevationModifier();
+
+            // Apply the delta 
+            thisCamera.transform.Translate(stagedMovement, Space.Self);
 
             // Keep the camera looking at the subject/location 
             thisCamera.transform.LookAt(lookAtPosition + lookAtPosOffset, Vector3.up);
+            
+            
 
             // Records the most recent non-zero single finger rotateion delta 
             if (Vector2.SqrMagnitude(singleFingerDelta) > 0)
@@ -609,12 +622,14 @@ public class CameraControl : MonoBehaviour
                 // Only delta high enough can trigger momentum effect 
                 if (Vector2.SqrMagnitude(lastDelta) > Vector2.SqrMagnitude(momentumThreshold))
                 {
-                    thisCamera.transform.Translate(
+                    Vector3 tempMomt =
                         new Vector3(lastDelta.x, lastDelta.y, 0) * Time.deltaTime *
-                        cameraRotationDamper * 
+                        cameraRotationDamper *
                         touchRotateMagnify * (1 + sensitivityMod)
-                        * (1 + globalSensitivityControl),
-                        Space.Self);
+                        * (1 + globalSensitivityControl);
+
+                      thisCamera.transform.Translate(tempMomt, Space.Self);
+                    
                 }
 
                 // Stop the movement when it's below certain value 
@@ -626,10 +641,9 @@ public class CameraControl : MonoBehaviour
         // Update all the last stats to current stats 
         lastPositionF1 = touchPosF1;
         lastFingerDist = fingerDist;
-        lastFingerAverage = fingerAverage; 
+        lastFingerAverage = fingerAverage;
 
         RegulateDistance();
-        RegulateAngle();
     }
 
     /// <summary>
@@ -689,26 +703,6 @@ public class CameraControl : MonoBehaviour
         float difference = currentDistance - targetDistance;
         Vector3 offset = thisCamera.transform.forward.normalized * difference;
         thisCamera.transform.Translate(offset, Space.World);
-    }
-
-    /// <summary>
-    /// Check the camera angle, if it's too steep, put it back into range. 
-    /// </summary>
-    private void RegulateAngle()
-    {
-        float pitch = thisCamera.transform.rotation.eulerAngles.x;
-        Vector3 rot = thisCamera.transform.rotation.eulerAngles; 
-
-        if (pitch > MAX_PITCH_ANGLE)
-        {
-            thisCamera.transform.rotation = Quaternion.Euler(new Vector3(MAX_PITCH_ANGLE, rot.y, rot.z));
-        }
-
-        if (pitch < -MAX_PITCH_ANGLE)
-        {
-            thisCamera.transform.rotation = Quaternion.Euler(new Vector3(-MAX_PITCH_ANGLE, rot.y, rot.z));
-        }
-
     }
 
     /// <summary>
@@ -868,6 +862,49 @@ public class CameraControl : MonoBehaviour
         ;
     }
 
+    /// <summary>
+    /// Avoid the camera go to the top and form a gimbal lock. 
+    /// This method started to pull the camera back to the middle whenever
+    /// the pitch angle becomes too steep. 
+    /// </summary>
+    private void RegulateAngle()
+    {
+        float angle = thisCamera.transform.rotation.eulerAngles.x;
+        float sign = Math.Sign((thisCamera.transform.position - (lookAtPosition + lookAtPosOffset)).y);
+        
+        // When looking up, the angle can either be between 0 to -90 or 360 to 270
+        // Unity seems to be making the decision on the fly with no reliable way to
+        // know for sure which one it will take. Thus, there are 3 situations 
+        if ((angle > (90 - NO_FLY_CONE_ANGLE) && angle < 90) || 
+            (angle < -(90 - NO_FLY_CONE_ANGLE))||
+            (angle > 270 && angle < (270 + NO_FLY_CONE_ANGLE)))
+        {
+            // The up vector might change drastically during the movement. 
+            // So making an inquery in every update can be a bad idea. 
+            // Here, only the up vector upon initially detecting the overshot 
+            // is recorded and used, subsequent changes will be neglected. 
+            if (!overshot)
+            {
+                overshot = true;
+                correction = thisCamera.transform.up; 
+            }
+
+            // Apply the change
+            angleRegulationCoef += .01f;
+            thisCamera.transform.position -= sign * correction * angleRegulationCoef;
+        }
+        else if (angleRegulationCoef > 0)
+        {
+            angleRegulationCoef -= .01f;
+            thisCamera.transform.position -= sign * correction * angleRegulationCoef;
+        }
+        else
+        {
+            overshot = false; 
+        }
+        
+    }
+
     /// ===============================================================
     /// ======================= Utility Methods =======================
     /// ===============================================================
@@ -891,12 +928,16 @@ public class CameraControl : MonoBehaviour
     {
         float upDownAngle = Math.Abs(thisCamera.transform.rotation.eulerAngles.x);
 
-        if (upDownAngle > MAX_PITCH_ANGLE)
-            upDownAngle = MAX_PITCH_ANGLE - (upDownAngle % MAX_PITCH_ANGLE);
-        float modifier = 1 - (float)Math.Pow((upDownAngle / MAX_PITCH_ANGLE), 4);
+        if (upDownAngle > PITCH_LIMIT)
+            upDownAngle = PITCH_LIMIT - (upDownAngle % PITCH_LIMIT);
+        float modifier = 1 - (float)Math.Pow((upDownAngle / PITCH_LIMIT), 4);
 
         return modifier;
     }
 
+    public void Cout(string str)
+    {
+        Debug.Log(str);
+    }
 }
 
