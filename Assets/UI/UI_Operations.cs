@@ -862,36 +862,28 @@ public class UI_Operations : MonoBehaviour
         {
             Vector2 position = mousePosition.ReadValue<Vector2>();
 
+            // Offset of the down-left point of the color picker chart selection zone 
             Vector2 colorPickingAreaOffset = new Vector2(
-                appearanceGB.resolvedStyle.left * _scalingRatio.x,
-                appearanceGB.resolvedStyle.top
+                Screen.width - appearanceGB.resolvedStyle.width * _scalingRatio.x
+                + colorPickerButton.resolvedStyle.marginLeft * _scalingRatio.x, 
+                Screen.height - appearanceGB.resolvedStyle.top * _scalingRatio.y
+                - root.Q<VisualElement>("VisualElement").resolvedStyle.top * _scalingRatio.y
+                - appearanceGB.resolvedStyle.height * _scalingRatio.y 
+                + colorPickerButton.resolvedStyle.marginBottom * _scalingRatio.y
                 );
 
-            // Convert from world space to the button's local space 
-            translated = new Vector2(
-                (position.x - colorPickingAreaOffset.x) / _scalingRatio.x -
-                colorPickerButton.resolvedStyle.marginLeft,
-                -(position.y - colorPickingAreaOffset.y) / _scalingRatio.y +
-                colorPickerButton.resolvedStyle.marginTop + pickerIcon.resolvedStyle.width / 2
-                ) / CHECKER_CHART_SIZE;
+            // Relative position in the picking zone, value in [0, 1] range on each axis
+            translated = (position - colorPickingAreaOffset) / (CHECKER_CHART_SIZE * _scalingRatio.x);
+            translated.y  = 1 - translated.y;
 
-            // The icon's position as displayed on screen 
+            // Absolute position of the picker icon inside the Appearance group box 
             Vector2 recordPos = new Vector2(
-                (position.x - colorPickingAreaOffset.x) / _scalingRatio.x -
-                (pickerIcon.resolvedStyle.width / 2),
-                -(position.y - colorPickingAreaOffset.y) / _scalingRatio.y +
-                colorPickerButton.resolvedStyle.top + colorPickerButton.resolvedStyle.marginTop
+                translated.x * CHECKER_CHART_SIZE + colorPickerButton.resolvedStyle.marginLeft -
+                pickerIcon.resolvedStyle.width / 2, 
+                appearanceGB.resolvedStyle.height - colorPickerButton.resolvedStyle.top + 
+                translated.y * CHECKER_CHART_SIZE + colorPickerButton.resolvedStyle.marginBottom
+                + pickerIcon.resolvedStyle.height / 2
                 );
-
-            Cout("Appearance GB size " + appearanceGB.resolvedStyle.width + 
-                " and " + appearanceGB.resolvedStyle.height +
-                "\nTo top " + appearanceGB.resolvedStyle.top + 
-                "\nScale ratio: " + _scalingRatio);
-
-            Cout("Screen size at " + Screen.width + " and " + Screen.height +
-                "\nInitial input positon: " + position + 
-                "\nRelative position" + translated + 
-                "\nAssigned positon: " + recordPos);
 
             // Move the icon to the selected location 
             // Since the actial resolution is not the same as logic resolution, another conversion is needed 
