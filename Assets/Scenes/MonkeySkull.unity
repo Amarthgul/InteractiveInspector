@@ -490,7 +490,6 @@ MonoBehaviour:
   selectedOpacity: 1
   unselectedOpacity: 1
   topBottomNullArea: {x: 0, y: 256}
-  leftRightNullArea: {x: 512, y: 1848}
   newlySelected: 0
 --- !u!1 &842534520
 GameObject:
@@ -1133,6 +1132,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   thisCamera: {fileID: 1390222728}
+  probe: {fileID: 0}
   cameraPanDamper: 1
   cameraZoomDamper: 1
   cameraRotationDamper: 20
@@ -1143,14 +1143,14 @@ MonoBehaviour:
   defaultRotation: {x: 0, y: 0, z: 0}
   targetObject: {fileID: 976133140}
   lockOnTarget: 1
-  targetHeightOffset: -1
+  targetHeightOffset: 1
   targetStartDistance: 20
   minimumDistance: 5
   maximumDistance: 50
   distanceSensityCoef: 1.7
-  touchRotateMagnify: 0.1
-  touchPinchMagnify: 1
-  touchPanMagnify: 0.25
+  touchRotateMagnify: 0.2
+  touchPinchMagnify: 2
+  touchPanMagnify: 0.5
   pinchActivationValue: 10
   startAnimationTime: 2
   idleStartPeriod: 5

@@ -5,6 +5,19 @@ using UnityEngine;
 public class Globals : MonoBehaviour
 {
 
+    /// <summary>
+    /// Generally, the app try to accommodate both touch and mouse/keyboard control.
+    /// But at times, there may be cases where only 1 type of contorl can be allowed,
+    /// this toggle is for the decision of which one takes priority. 
+    /// Remember to toggle this when building for different platforms. 
+    /// </summary>
+    public static bool webMode = true;
+
+
+    /// <summary>
+    /// Light mode changes the UIs to white and font/icons to black. 
+    /// </summary>
+    public static bool lightModeOn = false;
 
     public static Color lightModeUITint = Color.white;
     public static Color lightModeTxtTint = new Color(.1f, .1f, .1f);
@@ -12,7 +25,6 @@ public class Globals : MonoBehaviour
     public static Color darkModeUITint = new Color(.1f, .1f, .1f);
     public static Color darkModeTxtTint = new Color(.9f, .9f, .9f);
 
-    public static bool lightModeOn = false; 
 
 
     // 1000 milisecond in a second, used to convert second to milisecond 

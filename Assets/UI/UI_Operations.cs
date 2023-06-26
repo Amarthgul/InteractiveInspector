@@ -9,6 +9,8 @@ using Debug = UnityEngine.Debug;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using Unity.VisualScripting;
+using System;
+//using static UnityEngine.Rendering.DebugUI;
 
 public class UI_Operations : MonoBehaviour
 {
@@ -26,8 +28,6 @@ public class UI_Operations : MonoBehaviour
     // The dropper is an image whose origin is not the center.
     // This is used to correct its location so that the center follows touch control. 
     private const int DROPPER_OFFSET = 32;
-
-
 
     // This is purely a magical number obtained by observation.
     // The y position of the dropper circle when translated from world
@@ -100,8 +100,16 @@ public class UI_Operations : MonoBehaviour
     /// ======================= Input actions =========================
     private InputAction touchPrimary;
 
+    private InputAction mouseLMB; 
+    private InputAction mousePosition;
+
     /// ===============================================================
     /// ======================== Stat variables =======================
+
+    // Unity UI is disgustingly ununified, with display resoultion, render
+    // resoultion, logic resoultion all doing their own thing. This ratio
+    // is used in hope that it can somehow reduce the inconsistency. 
+    private Vector2 _scalingRatio = new Vector2(); 
 
     private VisualElement root;
 
@@ -166,10 +174,12 @@ public class UI_Operations : MonoBehaviour
     private bool isInFillSelect = true; 
 
     // Position of the rim color dropper in percentage location of the color chart 
-    private Vector2 rimColorPosition = new Vector2(.5f, .5f);
+    private static Vector2 rimRecord = new Vector2(.5f, .5f);
+    private Vector2 rimColorPosition = rimRecord;
 
     // Position of the fill color dropper in percentage location of the color chart 
-    private Vector2 fillColorPosition = new Vector2(0f, 0f);
+    private static Vector2 fillRecord = new Vector2(0f, 0f);
+    private Vector2 fillColorPosition = fillRecord; 
 
     // Dict recording the stats of the UIs, whether or not they are active. Initilized in `Start()`
     private Dictionary<Globals.UIElements, bool> activeUI = new Dictionary<Globals.UIElements, bool>();
@@ -235,9 +245,12 @@ public class UI_Operations : MonoBehaviour
         
     }
 
-    public void Initialize(InputAction PT)
+    public void Initialize(InputAction PT, InputAction LMB, InputAction MP)
     {
         touchPrimary = PT;
+        mouseLMB = LMB;
+        mousePosition = MP;
+
     }
 
     // Start is called before the first frame update
@@ -256,6 +269,8 @@ public class UI_Operations : MonoBehaviour
         txtTintColor = Globals.darkModeTxtTint;
         UpdateAllModeTintColors();
 
+        rimColorPosition = rimRecord;
+        fillColorPosition = fillRecord;
 
         currentOpacity = 0;
         root.style.opacity = currentOpacity;
@@ -276,8 +291,7 @@ public class UI_Operations : MonoBehaviour
 
         
 
-        SelectFillColor();
-        SelectRimColor();
+        
     }
 
     // Update is called once per frame
@@ -288,9 +302,7 @@ public class UI_Operations : MonoBehaviour
 
         UpdateTheme();
 
-        // Protected area is updated constantly to reflect
-        // the change in direction (landscape and portrait mode)
-        meinCamera.SetLeftRightProtectArea(512, 512);
+        UpdateDynamicScale(); 
     }
 
     /// ===============================================================
@@ -510,6 +522,8 @@ public class UI_Operations : MonoBehaviour
         // Turn on setting panel 
         else
         {
+            SelectFillColor();
+            SelectRimColor();
 
             activeUI[Globals.UIElements.Appearance] = true;
             if (!rightTransitioning)
@@ -588,19 +602,42 @@ public class UI_Operations : MonoBehaviour
     }
 
     /// <summary>
-    /// Reset the settings 
+    /// Reset setting options, clear the selection and the shader effects
     /// </summary>
     private void ResetClicked()
     {
+
+        // Toggle all checkboxes to off 
         if (disableAutoRotate)
             ToggleAutoRotate();
-
         if (autoVoiceover)
             ToggleVoiceOver();
+        if (Globals.lightModeOn)
+            ToggleLightMode();
 
+        // Set the touch sensitivity back to 0
+        touchSensSlider.value = 0;
+        
+        
+
+        rimColorPosition = rimRecord;
+        fillColorPosition = fillRecord;
+
+        SelectFillColor();
+        isInFillSelect = true;
+        AlterColor(fillColorPosition);
+        
+        SelectRimColor();
+        isInFillSelect = false;
+        AlterColor(rimColorPosition);
+
+        // Start the button pressing animation 
         meinCamera.ExternalReset();
         resetButtonPressed = true;
         resetButtonTintSW.Restart();
+
+        // Unselect everything 
+        tapHandler.UnselectAll();
     }
 
     /// <summary>
@@ -783,8 +820,10 @@ public class UI_Operations : MonoBehaviour
 
         isInFillSelect = true;
 
-        pickerIcon.style.left = fillColorPosition.x;
-        pickerIcon.style.top = fillColorPosition.y;
+        Vector2 absPos = RatioToPixel(fillColorPosition);
+
+        pickerIcon.style.left = absPos.x;
+        pickerIcon.style.top = absPos.y;
 
         AlterColor(fillColorPosition);
     }
@@ -800,8 +839,10 @@ public class UI_Operations : MonoBehaviour
 
         isInFillSelect = false;
 
-        pickerIcon.style.left = rimColorPosition.x;
-        pickerIcon.style.top = rimColorPosition.y;
+        Vector2 absPos = RatioToPixel(rimColorPosition);
+
+        pickerIcon.style.left = absPos.x;
+        pickerIcon.style.top = absPos.y;
 
         AlterColor(rimColorPosition);
     }
@@ -814,18 +855,69 @@ public class UI_Operations : MonoBehaviour
     private void ColorPicking()
     {
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
+        Vector2 localPos;
+        Vector2 translated; 
 
-        // Convert from world space to the button's local space 
-        Vector2 localPos = colorPickerButton.WorldToLocal(
-            new Vector2(currentTouchF1.position.x, currentTouchF1.position.y + DROPPER_TRANSFORM_OFFSET));
+        if (Globals.webMode)
+        {
+            Vector2 position = mousePosition.ReadValue<Vector2>();
 
-        // Local space's y is inverted and is biased due to the button margin. 
-        // This invert the sign and offset the effect of the margin.
-        //Vector2 translated = new Vector2(localPos.x, -localPos.y - DROPPER_TRANSFORM_OFFSET);
-        Vector2 translated = new Vector2(localPos.x, -localPos.y);
-        
+            Vector2 colorPickingAreaOffset = new Vector2(
+                appearanceGB.resolvedStyle.left * _scalingRatio.x,
+                appearanceGB.resolvedStyle.top
+                );
 
-        AlterColor(translated / CHECKER_CHART_SIZE);
+            // Convert from world space to the button's local space 
+            translated = new Vector2(
+                (position.x - colorPickingAreaOffset.x) / _scalingRatio.x -
+                colorPickerButton.resolvedStyle.marginLeft,
+                -(position.y - colorPickingAreaOffset.y) / _scalingRatio.y +
+                colorPickerButton.resolvedStyle.marginTop + pickerIcon.resolvedStyle.width / 2
+                ) / CHECKER_CHART_SIZE;
+
+            // The icon's position as displayed on screen 
+            Vector2 recordPos = new Vector2(
+                (position.x - colorPickingAreaOffset.x) / _scalingRatio.x -
+                (pickerIcon.resolvedStyle.width / 2),
+                -(position.y - colorPickingAreaOffset.y) / _scalingRatio.y +
+                colorPickerButton.resolvedStyle.top + colorPickerButton.resolvedStyle.marginTop
+                );
+
+            Cout("Appearance GB size " + appearanceGB.resolvedStyle.width + 
+                " and " + appearanceGB.resolvedStyle.height +
+                "\nTo top " + appearanceGB.resolvedStyle.top + 
+                "\nScale ratio: " + _scalingRatio);
+
+            Cout("Screen size at " + Screen.width + " and " + Screen.height +
+                "\nInitial input positon: " + position + 
+                "\nRelative position" + translated + 
+                "\nAssigned positon: " + recordPos);
+
+            // Move the icon to the selected location 
+            // Since the actial resolution is not the same as logic resolution, another conversion is needed 
+            pickerIcon.style.left = (int)recordPos.x;
+            pickerIcon.style.top = (int)recordPos.y;
+
+            if (isInFillSelect)
+                fillColorPosition = translated; 
+            else 
+                rimColorPosition = translated;
+        }
+        else
+        {
+            Vector2 position = new Vector2(currentTouchF1.position.x,
+            currentTouchF1.position.y + DROPPER_TRANSFORM_OFFSET);
+
+            // Convert from world space to the button's local space 
+            localPos = colorPickerButton.WorldToLocal(position);
+
+            // Local space's y is inverted and is biased due to the button margin. 
+            // This invert the sign and offset the effect of the margin.
+            //Vector2 translated = new Vector2(localPos.x, -localPos.y - DROPPER_TRANSFORM_OFFSET);
+            translated = new Vector2(localPos.x, -localPos.y) / CHECKER_CHART_SIZE;
+        }
+
+        AlterColor(translated );
     }
 
     /// <summary>
@@ -838,12 +930,37 @@ public class UI_Operations : MonoBehaviour
         if (!allowContinuousPick || !activeUI[Globals.UIElements.Appearance]) return;
 
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
-        Vector2 localPos = colorPickerButton.WorldToLocal(
-            new Vector2(currentTouchF1.position.x, currentTouchF1.position.y + DROPPER_TRANSFORM_OFFSET));
+        Vector2 colorPickingAreaOffset = new Vector2(
+                appearanceGB.resolvedStyle.left * _scalingRatio.x,
+                appearanceGB.resolvedStyle.top
+                );
+        Vector2 localPos; 
+
+        Vector2 position = new Vector2(currentTouchF1.position.x, 
+            currentTouchF1.position.y + DROPPER_TRANSFORM_OFFSET);
+
+        if (Globals.webMode)
+        {
+            position = mousePosition.ReadValue<Vector2>();
+            localPos = new Vector2(
+                (position.x - colorPickingAreaOffset.x) / _scalingRatio.x -
+                colorPickerButton.resolvedStyle.marginLeft,
+                -(position.y - colorPickingAreaOffset.y) / _scalingRatio.y +
+                colorPickerButton.resolvedStyle.marginTop + pickerIcon.resolvedStyle.width / 2
+                );
+        }
+        else
+        {
+            localPos = colorPickerButton.WorldToLocal(position);
+            localPos.y = -localPos.y;
+        }
+
 
         // If it's in the picker chart, then update the color
-        if (localPos.x > 0 && localPos.x < CHECKER_CHART_SIZE &&
-            localPos.y < 0 && localPos.y > -(CHECKER_CHART_SIZE))
+        if ((localPos.x > 0 && localPos.x < CHECKER_CHART_SIZE &&
+            localPos.y > 0 && localPos.y < CHECKER_CHART_SIZE) 
+            && (!Globals.webMode || (Globals.webMode && mouseLMB.IsPressed()))
+            )
         {
             ColorPicking();
         }
@@ -863,16 +980,18 @@ public class UI_Operations : MonoBehaviour
 
         Color selectedColor = bgImage.GetPixel(pixelX, bgImage.height - pixelY) ;
 
-        Vector2 updatedPos = new Vector2(
+        if (!Globals.webMode)
+        {
+            Vector2 updatedPos = new Vector2(
             precentLocation.x * CHECKER_CHART_SIZE
-            - DROPPER_OFFSET + CHECKER_CHART_MARGIN, 
+            - DROPPER_OFFSET + CHECKER_CHART_MARGIN,
             precentLocation.y * CHECKER_CHART_SIZE
             - DROPPER_OFFSET + COLOR_PICKER_OFFSET + CHECKER_CHART_MARGIN);
 
-        // Move the icon to the selected location 
-        pickerIcon.style.left = updatedPos.x;
-        pickerIcon.style.top = updatedPos.y;
-
+            // Move the icon to the selected location 
+            pickerIcon.style.left = updatedPos.x;
+            pickerIcon.style.top = updatedPos.y;
+        }
         pickerIcon.style.unityBackgroundImageTintColor = selectedColor;
 
         // Save the icon location and change the corresponding shader color 
@@ -969,6 +1088,13 @@ public class UI_Operations : MonoBehaviour
 
     }
 
+    /// <summary>
+    /// Update the visibility of the content of each group box.
+    /// For appearance and text description, nothing can be displayed if nothing is selected,
+    /// they thus show a sub-groupbox asking the user to select something. When there is 
+    /// at least 1 active selection, then these 2 group boxes will show the corresponding options. 
+    /// Setting can be accessed with or without active selection, though. 
+    /// </summary>
     private void UpdateEmpty()
     {
         if (tapHandler.HasSelected())
@@ -977,8 +1103,7 @@ public class UI_Operations : MonoBehaviour
             TextDescriptionSelectedView.style.opacity = maxOpacity;
             appearanceEmptyView.style.opacity = 0;
             appearanceSelectedView.style.opacity = maxOpacity;
-            settingEmptyView.style.opacity = 0;
-            settingSelectedView.style.opacity = maxOpacity;
+
         }
         else
         {
@@ -986,10 +1111,39 @@ public class UI_Operations : MonoBehaviour
             TextDescriptionSelectedView.style.opacity = 0;
             appearanceEmptyView.style.opacity = maxOpacity;
             appearanceSelectedView.style.opacity = 0;
-            settingEmptyView.style.opacity = maxOpacity;
-            settingSelectedView.style.opacity = 0;
+
         }
     }
+
+    /// <summary>
+    /// Update the screen size and the corresponding UI widths, broadcast these stats
+    /// to camera and taphandler, or other components that need to use these values. 
+    /// </summary>
+    private void UpdateDynamicScale()
+    {
+        
+        IPanel _panel = appearanceGB.panel;
+        Vector2 ssize = new(Screen.width, Screen.height);
+        Vector2 stpMin = RuntimePanelUtils.ScreenToPanel(_panel, new Vector2(0, 0));
+        Vector2 stpMax = RuntimePanelUtils.ScreenToPanel(_panel, ssize);
+        Vector2 stpSize = stpMax - stpMin;
+        _scalingRatio = ssize / stpSize;
+
+        float left = settingsGB.resolvedStyle.width * _scalingRatio.x;
+        float right = appearanceGB.resolvedStyle.width * _scalingRatio.x;
+        float bottom = (optionsGB.resolvedStyle.height - optionsGB.resolvedStyle.bottom) * _scalingRatio.y;
+
+        // Protected area is updated constantly to reflect
+        // the change in direction (landscape and portrait mode)
+        meinCamera.SetLeftRightProtectArea((int)left, 
+            (int)right);
+
+        tapHandler.SetLeftRigthNull(new Vector2(left, Screen.width - right));
+        tapHandler.SetTopBottomNull(new Vector2(0, bottom));
+        
+    }
+
+
 
     /// ===============================================================
     /// ======================= Utility Methods =======================
@@ -1028,6 +1182,22 @@ public class UI_Operations : MonoBehaviour
             return sprite.texture;
     }
 
-
-
+    /// <summary>
+    /// Given a vec2 of the ratio in [0, 1] representing the location
+    /// in term of ratio of color picking area's width and height.
+    /// Return an absoulte pixel location of this location in screen space. 
+    /// </summary>
+    /// <param name="input"></param>
+    /// <returns></returns>
+    private Vector2 RatioToPixel(Vector2 input)
+    {
+        return new Vector2(
+            input.x * CHECKER_CHART_SIZE + pickerIcon.resolvedStyle.width / 2,
+            input.y * CHECKER_CHART_SIZE + colorPickerButton.resolvedStyle.top -
+            pickerIcon.resolvedStyle.height / 2);
+    }
+    public void Cout(string str)
+    {
+        Debug.Log(str);
+    }
 }

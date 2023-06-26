@@ -37,18 +37,26 @@ public class InputManager : MonoBehaviour
             inputScheme.iOS.Primary, 
             inputScheme.iOS.Secondary);
 
-        tapDetector.Initialize(inputScheme.iOS.Primary);
+        tapDetector.Initialize(inputScheme.iOS.Primary, 
+            inputScheme.Desktop.LeftClick,
+            inputScheme.Desktop.MousePosition);
 
         UIHF.Initialize(inputScheme.iOS.Primary);
-
-        UIO.Initialize(inputScheme.iOS.Primary);
+        
+        UIO.Initialize(inputScheme.iOS.Primary, 
+            inputScheme.Desktop.LeftClick,
+            inputScheme.Desktop.MousePosition);
     }
 
     private void OnEnable()
     {
         inputScheme.Enable();
 
-        var _q = new QuitHandler(inputScheme.Desktop.Quit);
+        // Web mode esc will freeze the app, so disable esc in web mode 
+        if (!Globals.webMode)
+        {
+            var _q = new QuitHandler(inputScheme.Desktop.Quit);
+        }
 
     }
 

@@ -8,6 +8,7 @@ using UnityEngine.InputSystem.LowLevel;
 using Debug = UnityEngine.Debug;
 using System;
 using UnityEngine.UIElements;
+using UnityEngine.Rendering.UI;
 
 public class CameraControl : MonoBehaviour
 {
@@ -230,6 +231,8 @@ public class CameraControl : MonoBehaviour
     private bool touchPinchFlag = false; // Flag this true if pinch is detected 
     private bool touchPanFlag = false;   // Flag this true if pan is detected 
      
+    // Monitoring the left mouse button and if it clicks
+    private bool clickSessionLMB = false;
 
     // Monitoring the double click/tap event 
     private Stopwatch doubleClickSW = new Stopwatch();
@@ -322,18 +325,21 @@ public class CameraControl : MonoBehaviour
             UpdateState();
             UpdateSelfAnimation();
 
-            if (lockOnTarget)
-            {
-                UpdateTargetLock();
-            }
-            else
-            {
-                UpdateFreeMovement();
-            }
+            //if (lockOnTarget)
+            //{
+            //    UpdateTargetLock();
+            //}
+            //else
+            //{
+            //    UpdateFreeMovement();
+            //}
 
             CheckDoubleClick();
             CheckDoubleTap();
         }
+
+        // Keep the camera looking at the subject/location 
+        thisCamera.transform.LookAt(lookAtPosition, Vector3.up);
 
     }
 
@@ -412,9 +418,10 @@ public class CameraControl : MonoBehaviour
     /// <param name="right"> Width of right protect area</param>
     public void SetLeftRightProtectArea(int left, int right)
     {
-        
         leftRightNullArea = new Vector2(left, Screen.width - right);
     }
+
+    
 
     /// ===============================================================
     /// ======================= Private Methods ======================= 
@@ -508,7 +515,9 @@ public class CameraControl : MonoBehaviour
     }
 
     /// <summary>
-    /// All camera control by touch updates in thie method, including rotate, pan, and zoom. 
+    /// All camera control updates in thie method, including rotate, pan, and zoom. 
+    /// Beaware, this is the most complicated method due to it incorporated both touch
+    /// and mouse operation. 
     /// </summary>
     private void UpdateTouchControl()
     {
@@ -518,22 +527,48 @@ public class CameraControl : MonoBehaviour
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
         TouchState currentTouchF2 = touchSecondary.ReadValue<TouchState>();
 
-        Vector2 touchPosF1 = new Vector2(currentTouchF1.position.x, currentTouchF1.position.y);
-        Vector2 touchPosF2 = new Vector2(currentTouchF2.position.x, currentTouchF2.position.y);
+        // These declarations seems useless, they are separated from assignment b/c 
+        // there might be future needs to add webMode conditional assignment
+        Vector2 touchPosF1 = new Vector2(); 
+        Vector2 touchPosF2 = new Vector2();
+        Vector2 fingerAverage = new Vector2();
+        float fingerDist = 0; 
 
-        Vector2 fingerAverage = (touchPosF1 + touchPosF2) / 2;
-        float fingerDist = Vector2.Distance(touchPosF1, touchPosF2);
+        // Assign value based on touch control 
+        touchPosF1 = new Vector2(currentTouchF1.position.x, currentTouchF1.position.y);
+        touchPosF2 = new Vector2(currentTouchF2.position.x, currentTouchF2.position.y);
+        fingerAverage = (touchPosF1 + touchPosF2) / 2;
+        fingerDist = Vector2.Distance(touchPosF1, touchPosF2);
 
+        // Override value if mouse operation is detected 
+        if (mouseRMB.IsPressed())
+        {
+            fingerAverage = mouseDelta.ReadValue<Vector2>();
+            fingerDist = 0;
+        }
+        if (mouseLMB.IsPressed())
+        {
+            touchPosF1 = mousePosition.ReadValue<Vector2>();
+        }
+
+        // Deal with the distance between the camera and the target.
+        // The closer the camera gets, the less sensitive it is to movement
         float midDistance = (maximumDistance + minimumDistance) / 2;
         float overshot = targetDistance - midDistance;
         float sensitivityMod = (overshot / (maximumDistance - minimumDistance)) * distanceSensityCoef;
 
+
         // =====================================================================================
-        // ================================= Double finger operation ===========================
-        if (currentTouchF1.phase == UnityEngine.InputSystem.TouchPhase.Moved &&
-            currentTouchF2.phase == UnityEngine.InputSystem.TouchPhase.Moved)
+        // =================== Double finger operation and right mouse button ==================
+        // =====================================================================================
+        if ((currentTouchF1.phase == UnityEngine.InputSystem.TouchPhase.Moved &&
+            currentTouchF2.phase == UnityEngine.InputSystem.TouchPhase.Moved) ||
+            (mouseRMB.IsPressed() || mouseScroll.ReadValue<Vector2>().y != 0))
         {
+            // The change of distance between the 2 fingers 
             float fingerDistDelta = fingerDist - lastFingerDist;
+            if (mouseScroll.ReadValue<Vector2>().y != 0)
+                fingerDistDelta = mouseScroll.ReadValue<Vector2>().y;
 
             // Prioritize pinch
             if (Mathf.Abs(fingerDistDelta) > pinchActivationValue)
@@ -550,6 +585,12 @@ public class CameraControl : MonoBehaviour
                 Vector3 camUp = thisCamera.transform.up;
                 Vector3 camRight = Vector3.Cross(thisCamera.transform.forward, camUp).normalized;
 
+                // Web mode overrides the touch delta with mouse delta 
+                if (Globals.webMode)
+                {
+                    fingerAverageDelta = mouseDelta.ReadValue<Vector2>();
+                }
+
                 // Detla is a composite of camera up and camera right 
                 Vector3 deltaMovement = (camUp * -fingerAverageDelta.y + camRight * fingerAverageDelta.x)
                     * Time.deltaTime * cameraPanDamper * touchPanMagnify * (1 + sensitivityMod)
@@ -559,9 +600,9 @@ public class CameraControl : MonoBehaviour
                 thisCamera.transform.Translate(deltaMovement, Space.World);
                 lookAtPosition += deltaMovement;
             }
-            if (touchPinchFlag)
+            if (touchPinchFlag || (mouseScroll.ReadValue<Vector2>().y != 0))
             {
-                // 2 finger zoom 
+                // 2 finger zoom                 
                 targetDistance -= fingerDistDelta * Time.deltaTime * cameraZoomDamper * touchPinchMagnify
                     * (1 + sensitivityMod) * (1 + globalSensitivityControl);
             }
@@ -575,37 +616,53 @@ public class CameraControl : MonoBehaviour
 
         // =====================================================================================
         // ================================= Single finger operation ===========================
-        if (currentTouchF1.phase == UnityEngine.InputSystem.TouchPhase.Began) 
+        // =====================================================================================
+        if ((currentTouchF1.phase == UnityEngine.InputSystem.TouchPhase.Began) ||
+            (mouseLMB.IsPressed() && !clickSessionLMB)) 
         {
             // The start of a rotation clears previsou data 
             lastPositionF1 = touchPosF1;
+            Vector2 pos = touchPosF1;
+
+            if (mouseLMB.IsPressed())
+            {
+                clickSessionLMB = true;
+                pos = mousePosition.ReadValue<Vector2>();   
+            }
 
             // See if this touch started in the UI area 
-            touchStartedInProtected = (currentTouchF1.position.x > leftRightNullArea.y 
+            touchStartedInProtected = (pos.x > leftRightNullArea.y 
                 && areaProtected[(int)Globals.Side.Right]) || 
-                (currentTouchF1.position.x < leftRightNullArea.x
+                (pos.x < leftRightNullArea.x
                 && areaProtected[(int)Globals.Side.Left]); 
         }
-        else if (currentTouchF1.phase == UnityEngine.InputSystem.TouchPhase.Moved &&
-            Globals.deactivatedStats.Contains(currentTouchF2.phase))
+        else if ((currentTouchF1.phase == UnityEngine.InputSystem.TouchPhase.Moved &&
+            Globals.deactivatedStats.Contains(currentTouchF2.phase)) ||
+            (mouseLMB.IsPressed() && clickSessionLMB))
         {
             // If the touch is within the protected UI area or that the touch started
             // in the slider/picker area, then do not rotate the camera, quit directly.
             if (!ValidInput() || touchStartedInProtected) return;
 
-            // During a camera rotation operation, first calculates delta 
+            // During a touch controlled camera rotation operation, first calculates delta 
             singleFingerDelta = lastPositionF1 - touchPosF1;
 
+            // If left mouse button pressed, override the touch calculation result.
+            // Mouse delta has opposite direction, so a negation is also added. 
+            if(mouseLMB.IsPressed())
+                singleFingerDelta = -mouseDelta.ReadValue<Vector2>();
+
+            // Use previous result to calculate the desired movement 
             stagedMovement = new Vector3(singleFingerDelta.x, singleFingerDelta.y, 0) * Time.deltaTime *
                 cameraRotationDamper * touchRotateMagnify * (1 + sensitivityMod)
                 * (1 + globalSensitivityControl) * ElevationModifier();
+            // Note that this is a separated Vec2 b/c it might be used for viability check 
 
-            // Apply the delta 
+            // Apply the calculated staged movement  
             thisCamera.transform.Translate(stagedMovement, Space.Self);
 
             // Keep the camera looking at the subject/location 
             thisCamera.transform.LookAt(lookAtPosition + lookAtPosOffset, Vector3.up);
-            
             
 
             // Records the most recent non-zero single finger rotateion delta 
@@ -638,6 +695,9 @@ public class CameraControl : MonoBehaviour
             }
         }
 
+        if (clickSessionLMB && !mouseLMB.IsPressed())
+            clickSessionLMB = false;
+
         // Update all the last stats to current stats 
         lastPositionF1 = touchPosF1;
         lastFingerDist = fingerDist;
@@ -651,6 +711,9 @@ public class CameraControl : MonoBehaviour
     /// </summary>
     private void CheckDoubleClick()
     {
+        // Since a new reset button is added in ver 0.11, this function is no longer needed
+        return; 
+
         // Start a potential double click listener (double tap has been moved into another method)
         if (mouseRMB.ReadValue<float>() == 1f ) // ||
             //(activateStates.Contains(touchPrimary.ReadValue<TouchState>().phase) &&
@@ -745,7 +808,8 @@ public class CameraControl : MonoBehaviour
         TouchState currentTouchF2 = touchSecondary.ReadValue<TouchState>();
 
         if (Globals.activateStates.Contains(currentTouchF1.phase) ||
-            Globals.activateStates.Contains(currentTouchF2.phase))
+            Globals.activateStates.Contains(currentTouchF2.phase) ||
+            (mouseLMB.IsPressed() || mouseRMB.IsPressed() || mouseScroll.ReadValue<Vector2>().y != 0))
         {
             interaction = true;
             cameraStateSW.Restart();
@@ -852,6 +916,11 @@ public class CameraControl : MonoBehaviour
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
         Vector2 position = new Vector2(currentTouchF1.position.x, currentTouchF1.position.y);
 
+        if(Globals.webMode)
+        {
+            position = mousePosition.ReadValue<Vector2>();
+        }
+
         // If there is no deactivated area, return true
         if (!areaProtected.Contains(false)) return true;
 
@@ -893,6 +962,10 @@ public class CameraControl : MonoBehaviour
             angleRegulationCoef += .01f;
             thisCamera.transform.position -= sign * correction * angleRegulationCoef;
         }
+
+        // When this part got reached, it means the angle is good now. 
+        // But to avoid an abrupt change in movement, the camera will keep moving
+        // with a slower and slower speed, until the coefficient reaches 0. 
         else if (angleRegulationCoef > 0)
         {
             angleRegulationCoef -= .01f;

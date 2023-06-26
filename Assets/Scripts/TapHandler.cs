@@ -18,7 +18,8 @@ public class TapHandler : MonoBehaviour
     private const string ERR_SELECT = "No description for obnject selected";
 
     /// ===============================================================
-    /// ==================== Serialized variables ===================== 
+    /// ==================== Serialized variables =====================   
+
     [SerializeField] Camera meinCamera; // Das war ein befehl!
 
     [SerializeField] float rayLength;
@@ -64,43 +65,54 @@ public class TapHandler : MonoBehaviour
     [Tooltip("Part of top and bottom screen becomes unresponsive when UIs are active")]
     [SerializeField] Vector2 topBottomNullArea = Vector2.zero;
 
-    [Tooltip("Part of left and right screen becomes unresponsive when UIs are active")]
-    [SerializeField] Vector2 leftRightNullArea = Vector2.zero;
 
     /// ===============================================================
     /// ======================= Input actions =========================
     private InputAction touchPrimary;
 
+    private InputAction LeftMouseButton;
+
+    private InputAction mousePosition;
+
     /// ===============================================================
     /// ======================== Stat variables =======================  
 
-    // Restrict the update in checking tap for certain amount of miliseconds 
-    private int tapProtection = 150; 
+    Vector2 leftRightNullArea = Vector2.zero;
 
     // This is used to ensure accidental touch will not reset previous tap selection
-    private int lastTapCount = 0; 
+    private int lastTapCount = 0;  
     
     // Mark each object's select status, true if this object is currently selected/highlighted 
     private List<bool> selected = new List<bool>();
 
-    // For counting time between taps
-    private Stopwatch tapStopwatch = new Stopwatch();
+    // Restrict the update in checking tap for certain amount of miliseconds 
+    private int selectProtection = 150;
+    // Flag true when a new selection is made to avoid the Update() keep select and unselect 
+    private bool selectProtected = false;
+    // For counting time between selections 
+    private Stopwatch selectionStopwatch = new Stopwatch();
 
     // Mark this to true whenever the user makes a new selection 
     public bool newlySelected = false;
 
     // Name of the last selected object 
-    private string lastSelected = ""; 
+    private string lastSelected = "";
+
+    // Variables for mouse click selections 
+    private bool lastLMB = false;
+    private string sessionStartSelected = ""; 
 
     // UI interference 
     // Top, bottom, left, right, as defined in Globals
     List<bool> areaProtected = new List<bool>() { false, false, false, false };
 
-    public void Initialize(InputAction PT)
+    public void Initialize(InputAction PT, InputAction LMB, InputAction LMP)
     {
         touchPrimary = PT;
+        LeftMouseButton = LMB;
+        mousePosition = LMP;
 
-        tapStopwatch.Start();
+        selectionStopwatch.Start();
     }
 
 
@@ -116,12 +128,21 @@ public class TapHandler : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        string nameOfTapped = TapResponse();
-        
+        string nameOfTapped;
+
+        if (Globals.webMode)
+        {
+            nameOfTapped = TapResponseWeb();
+
+
+        }
+        else
+        {
+            nameOfTapped = TapResponse();
+        }
+
         if (nameOfTapped != null)
         {
-            
-
             // If a valid object is selected, alter its (or others') shader(s)
             AlterTapped(nameOfTapped);
 
@@ -134,11 +155,12 @@ public class TapHandler : MonoBehaviour
             {
                 newlySelected = false;
             }
-
         }
         if (nameOfTapped == NONE)
         {
+
             if (!ValidInput()) return;
+
             // If tapped outside of objects, resets all effects 
             ResetAllShaders();
         }
@@ -159,7 +181,6 @@ public class TapHandler : MonoBehaviour
     {
         return selected.Contains(true);
     }
-
 
     /// <summary>
     /// Disable top area's touch control
@@ -233,7 +254,9 @@ public class TapHandler : MonoBehaviour
         for (int i = 0; i < canBeTapped.Count; i++)
         {
             selected[i] = false;
+
         }
+        
     }
 
     /// <summary>
@@ -334,6 +357,28 @@ public class TapHandler : MonoBehaviour
         return null;
     }
 
+    /// <summary>
+    /// Set the left and right area that will become unresponsive once the UI is invoked. 
+    /// Note that if the screen is 1920 wide and left right are 100px wide each, then 
+    /// you should pass in (100, 1820), NOT (100, 100). 
+    /// </summary>
+    /// <param name="input">X axis coordinate of left and right</param>
+    public void SetLeftRigthNull(Vector2 input)
+    {
+        leftRightNullArea = input; 
+    }
+
+    /// <summary>
+    /// Set the top and bottom area that will become unresponsive once the UI is invoked. 
+    /// Note that if the screen is 1080 heigh and top bottom are 100px wide each, then 
+    /// you should pass in (100, 980), NOT (100, 100). 
+    /// </summary>
+    /// <param name="input">Y axis coordinate of top and bottom</param>
+    public void SetTopBottomNull(Vector2 input)
+    {
+        topBottomNullArea = input;
+    }
+
     /// ===============================================================
     /// ======================= Private Methods =======================
     /// ===============================================================
@@ -348,18 +393,31 @@ public class TapHandler : MonoBehaviour
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
         string nameOfTapped = null;
 
-        if(currentTouchF1.tapCount >= 1 && currentTouchF1.tapCount != lastTapCount 
-            && tapStopwatch.ElapsedMilliseconds > tapProtection)
+        // Only cast ray when there is a tap or click 
+        if ((currentTouchF1.tapCount >= 1 && currentTouchF1.tapCount != lastTapCount 
+            && selectionStopwatch.ElapsedMilliseconds > selectProtection) ||
+            (Globals.webMode && LeftMouseButton.IsPressed() && !selectProtected))
         {
-            tapStopwatch.Restart();
+            selectionStopwatch.Restart();
 
-            // Only cast ray when there is a tap 
+            Vector2 position = new Vector2();
+            if (Globals.webMode)
+            {
+                position = mousePosition.ReadValue<Vector2>();
+                selectProtected = true; 
+            }
+            else
+            {
+                position = currentTouchF1.position;
+            }
 
+            
             RaycastHit hit; 
-            Ray ray = meinCamera.ScreenPointToRay(currentTouchF1.position);
+            Ray ray = meinCamera.ScreenPointToRay(position);
 
             if (Physics.Raycast(ray, out hit))
             {
+
                 // If the ray hit something
                 nameOfTapped = hit.transform.name;
 
@@ -377,8 +435,74 @@ public class TapHandler : MonoBehaviour
         // lastTapCount thus needs resetting to accommodate the change in tapCount. 
         if (currentTouchF1.tapCount == 0)
             lastTapCount = 0;
+        
+        if (Globals.webMode && selectionStopwatch.ElapsedMilliseconds > selectProtection)
+        {
+            selectProtected = false;
+        }
 
         return nameOfTapped; 
+    }
+
+    /// <summary>
+    /// Method strictly for web browsers. 
+    /// This is due to the fact that mouse click does not have phases like touches do,
+    /// and thus, needing explicit logic to judge what constitues a tap selection and
+    /// what is accidental passing by. 
+    /// </summary>
+    private string TapResponseWeb()
+    {
+        string nameOfTapped = null;
+        
+        Vector2 position = new Vector2();
+        position = mousePosition.ReadValue<Vector2>();
+
+        // The start of a click
+        if (!lastLMB && LeftMouseButton.IsPressed())
+        {
+            RaycastHit hit;
+            Ray ray = meinCamera.ScreenPointToRay(position);
+
+            if (Physics.Raycast(ray, out hit))
+            {
+                // If the ray hit something
+                sessionStartSelected = hit.transform.name;
+            }
+            else
+            {
+                // If the ray hit nothing 
+                nameOfTapped = NONE;
+            }
+        }
+
+        // The end of a click 
+        if (lastLMB && !LeftMouseButton.IsPressed())
+        {
+            RaycastHit hit;
+            Ray ray = meinCamera.ScreenPointToRay(position);
+
+            if (Physics.Raycast(ray, out hit))
+            {
+                // If the ray hit something
+                string selected = hit.transform.name;
+
+                // If the start and end of a click is on the same object
+                // it can be assumed that the user is trying to select it
+                if (selected == sessionStartSelected)
+                {
+                    nameOfTapped = selected; 
+                }
+            }
+            else
+            {
+                // If the ray hit nothing 
+                nameOfTapped = NONE;
+            }
+        }
+
+        lastLMB = LeftMouseButton.IsPressed();
+
+        return nameOfTapped;
     }
 
     /// <summary>
@@ -482,14 +606,19 @@ public class TapHandler : MonoBehaviour
     /// <summary>
     /// Given an input position, check with active areas to see if its position is valid.
     /// </summary>
-    /// <param name="position">Vec2 position in screen space</param>
     /// <returns>True if the position is in active area</returns>
     private bool ValidInput()
     {
+
         // Assume the interval between the caller function and this funtion is so small
         // that the touch position does not change (or small enough to neglect)
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
-        Vector2 position = new Vector2(currentTouchF1.position.x, currentTouchF1.position.y);
+        Vector2 position = new Vector2();
+
+        if (Globals.webMode)
+            position = mousePosition.ReadValue<Vector2>();
+        else
+            position = new Vector2(currentTouchF1.position.x, currentTouchF1.position.y);
 
         // If there is no deactivated area, return true
         if (!areaProtected.Contains(false)) return true;
@@ -511,4 +640,9 @@ public class TapHandler : MonoBehaviour
         return false;
     }
 
+
+    public void Cout(string str)
+    {
+        Debug.Log(str);
+    }
 }
