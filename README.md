@@ -32,11 +32,16 @@ hit start. After Xcode completes, the app should start automatically on you devi
 
 * Tap on a part of the model to select and highlight it
 
-* Once an object is selected, a pop up menu will show up at the bottom. 
+* Once an object is selected, the bottom menu will be activated (technically user can still access the 
+  menu items when nothing is selected, but it will show nothing but a prompt: "Select an item to begin"). 
 
   * The left-most icon is for settings. By default, the camera starts rotating around if there is no 
-  user input for 5 seconds, you could disable that in the settings. Similarly, auto-voiceover can also
-  be disabled. 
+  user input for a while, you could disable that in the settings. One can also enable auto voiceover 
+  so that invoking description panel will auto play the audio. 
+
+  The light mode turns the app into light theme, with the background and most UI elements becoming white. 
+
+  The setting panel also offers touch sensitivity control and a reset button. 
 
   * The middle icon shows the text description of the object currently seleted (if any). When multiple
   objects are selected, the first on the list will be displayed. 
@@ -75,7 +80,12 @@ will alter the name disaplyed during runtime.
 
 ## Dev Log 
 
-* June 25th 
+* June 26th 
+
+  Completely reworked the color picker, hand calculated the 3 different resolutions. 
+  As a result, the web version can now be controlled by mouse, with little to no UI misalignment. 
+
+* June 15th 
 
   The bottom panel now disaplys permanently (can still be toggled by unchecking the always show option in inspector). 
   When nothing is selected and a panel box is invoked, it will say select to begin. 
