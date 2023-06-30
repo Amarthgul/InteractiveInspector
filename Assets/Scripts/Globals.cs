@@ -13,6 +13,12 @@ public class Globals : MonoBehaviour
     /// </summary>
     public static bool webMode = true;
 
+    /// <summary>
+    /// A gloabl flag to save the effort of rewritting all the log message into the build
+    /// for testing the disgusting difference between Game window and actual brower/app. 
+    /// </summary>
+    public static bool DEBUGGING = false;
+
 
     /// <summary>
     /// Light mode changes the UIs to white and font/icons to black. 

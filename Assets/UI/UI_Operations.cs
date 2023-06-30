@@ -871,7 +871,8 @@ public class UI_Operations : MonoBehaviour
     {
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
         Vector2 localPos;
-        Vector2 translated; 
+        Vector2 translated;
+        bool valid = false;
 
         if (Globals.webMode)
         {
@@ -900,15 +901,24 @@ public class UI_Operations : MonoBehaviour
                 + pickerIcon.resolvedStyle.height / 2
                 );
 
-            // Move the icon to the selected location 
-            // Since the actial resolution is not the same as logic resolution, another conversion is needed 
-            pickerIcon.style.left = (int)recordPos.x;
-            pickerIcon.style.top = (int)recordPos.y;
+            if (Globals.DEBUGGING)
+                Debug.Log("Input positon: " + position + "    Offse by " + colorPickingAreaOffset + "    translate to: " + translated + "      recordPos: " + recordPos);
 
-            if (isInFillSelect)
-                fillColorPosition = translated; 
-            else 
-                rimColorPosition = translated;
+            if(translated.y > 0 && translated.y < 1)
+            {
+                // Move the icon to the selected location 
+                // Since the actial resolution is not the same as logic resolution, another conversion is needed 
+                pickerIcon.style.left = (int)recordPos.x;
+                pickerIcon.style.top = (int)recordPos.y;
+
+                if (isInFillSelect)
+                    fillColorPosition = translated;
+                else
+                    rimColorPosition = translated;
+
+                valid = true;
+            }
+            
         }
         else
         {
@@ -922,9 +932,11 @@ public class UI_Operations : MonoBehaviour
             // This invert the sign and offset the effect of the margin.
             //Vector2 translated = new Vector2(localPos.x, -localPos.y - DROPPER_TRANSFORM_OFFSET);
             translated = new Vector2(localPos.x, -localPos.y) / CHECKER_CHART_SIZE;
+            valid = true;
         }
 
-        AlterColor(translated );
+        if (valid)
+            AlterColor(translated );
     }
 
     /// <summary>
