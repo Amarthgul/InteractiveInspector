@@ -10,6 +10,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using Unity.VisualScripting;
 using System;
+using UnityEngine.SceneManagement;
 //using static UnityEngine.Rendering.DebugUI;
 
 public class UI_Operations : MonoBehaviour
@@ -89,8 +90,13 @@ public class UI_Operations : MonoBehaviour
     [Tooltip("Background panel image for when rim light is selected")]
     [SerializeField] private Sprite rimSelectedBG;
 
+    [Tooltip("Background panel image for when nothing is selected")]
+    [SerializeField] private Sprite nonSelectedBG;
+
+    [Tooltip("Font color for rim/fill selection when activated")]
     [SerializeField] private Color defaultFontColor;
 
+    [Tooltip("Font color for rim/fill selection when deactivated")]
     [SerializeField] private Color dimFontColor; 
 
     [Tooltip("When enabled, the dropper moves continuously with touch")]
@@ -128,6 +134,7 @@ public class UI_Operations : MonoBehaviour
     private Button disableRotateButton;
     private Button autoVoiceoverButton;
     private Button enableLightModeButton;
+    private Button multipleSelectionButton;
     private Slider touchSensSlider;
     private Button resetButton;
 
@@ -174,7 +181,7 @@ public class UI_Operations : MonoBehaviour
     private bool isInFillSelect = true; 
 
     // Position of the rim color dropper in percentage location of the color chart 
-    private static Vector2 rimRecord = new Vector2(.5f, .5f);
+    private static Vector2 rimRecord = new Vector2(.6f, .6f);
     private Vector2 rimColorPosition = rimRecord;
 
     // Position of the fill color dropper in percentage location of the color chart 
@@ -208,6 +215,7 @@ public class UI_Operations : MonoBehaviour
         disableRotateButton = settingsGB.Q<Button>("DisAutoRotToggle");
         autoVoiceoverButton = settingsGB.Q<Button>("DisVoiceToggle");
         enableLightModeButton = settingsGB.Q<Button>("LightModeToggle");
+        multipleSelectionButton = settingsGB.Q<Button>("MultiSelectToggle");
         touchSensSlider = settingsGB.Q<Slider>("TouchSensSlider");
         resetButton = settingsGB.Q<Button>("ResetButton");
 
@@ -226,6 +234,7 @@ public class UI_Operations : MonoBehaviour
         disableRotateButton.clicked += () => ToggleAutoRotate();
         autoVoiceoverButton.clicked += () => ToggleVoiceOver();
         enableLightModeButton.clicked += () => ToggleLightMode();
+        multipleSelectionButton.clicked += () => ToggleMultipleSelection();
 
         playAudioButton.clicked += () => ManuallyPlayAudiop();
 
@@ -303,6 +312,24 @@ public class UI_Operations : MonoBehaviour
         UpdateTheme();
 
         UpdateDynamicScale(); 
+    }
+
+
+    public void TurnOffAllPanels()
+    {
+        if (activeUI[Globals.UIElements.Settings])
+        {
+            ToggleSettingsGB();
+        }
+        if (activeUI[Globals.UIElements.Appearance])
+        {
+            ToggleAppearanceGB();
+        }
+        if (activeUI[Globals.UIElements.Text])
+        {
+            ToggleTextGB();
+        }
+
     }
 
     /// ===============================================================
@@ -446,7 +473,6 @@ public class UI_Operations : MonoBehaviour
             }
         }
     }
-
 
     /// <summary>
     /// Update the animation and display of the appearance control panel 
@@ -594,6 +620,24 @@ public class UI_Operations : MonoBehaviour
     }
 
     /// <summary>
+    /// Toggle on or off the ability to select multiple objects. 
+    /// </summary>
+    private void ToggleMultipleSelection()
+    {
+        if (tapHandler.CanSelectMultiple())
+        {
+            tapHandler.SetMultipleSelection(false);
+            multipleSelectionButton.style.backgroundImage = new StyleBackground(checkBoxDefault);
+
+        }
+        else
+        {
+            tapHandler.SetMultipleSelection(true);
+            multipleSelectionButton.style.backgroundImage = new StyleBackground(checkBoxChecked);
+        }
+    }
+
+    /// <summary>
     /// Read the touch sensitivity value and send it to the camera
     /// </summary>
     private void UpdateTouchSensitivity()
@@ -607,37 +651,8 @@ public class UI_Operations : MonoBehaviour
     private void ResetClicked()
     {
 
-        // Toggle all checkboxes to off 
-        if (disableAutoRotate)
-            ToggleAutoRotate();
-        if (autoVoiceover)
-            ToggleVoiceOver();
-        if (Globals.lightModeOn)
-            ToggleLightMode();
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 
-        // Set the touch sensitivity back to 0
-        touchSensSlider.value = 0;
-        
-        
-
-        rimColorPosition = rimRecord;
-        fillColorPosition = fillRecord;
-
-        SelectFillColor();
-        isInFillSelect = true;
-        AlterColor(fillColorPosition);
-        
-        SelectRimColor();
-        isInFillSelect = false;
-        AlterColor(rimColorPosition);
-
-        // Start the button pressing animation 
-        meinCamera.ExternalReset();
-        resetButtonPressed = true;
-        resetButtonTintSW.Restart();
-
-        // Unselect everything 
-        tapHandler.UnselectAll();
     }
 
     /// <summary>
@@ -991,6 +1006,7 @@ public class UI_Operations : MonoBehaviour
         {
             fillColorPosition = precentLocation;
             tapHandler.SetFillColor(selectedColor);
+
         }
         else
         {
@@ -1038,6 +1054,7 @@ public class UI_Operations : MonoBehaviour
         disableRotateButton.style.unityBackgroundImageTintColor = txtTintColor;
         autoVoiceoverButton.style.unityBackgroundImageTintColor = txtTintColor;
         enableLightModeButton.style.unityBackgroundImageTintColor = txtTintColor;
+        multipleSelectionButton.style.unityBackgroundImageTintColor = txtTintColor;
 
         playAudioButton.style.unityBackgroundImageTintColor = txtTintColor;
 
@@ -1048,6 +1065,7 @@ public class UI_Operations : MonoBehaviour
         root.Q<Label>("SettingLabel").style.color = txtTintColor;
         root.Q<Label>("DisAutoRotTxt").style.color = txtTintColor;
         root.Q<Label>("DisVoiceTxt").style.color = txtTintColor;
+        root.Q<Label>("MultiSelectTxt").style.color = txtTintColor;
         root.Q<Label>("TouchSensitivityTxt").style.color = txtTintColor;
         root.Q<Label>("LightModeTxt").style.color = txtTintColor;
         root.Q<Label>("VisualLabel").style.color = txtTintColor;
@@ -1055,6 +1073,7 @@ public class UI_Operations : MonoBehaviour
         root.Q<Label>("TextUO").style.color = txtTintColor;
         root.Q<Button>("SelectFill").style.color = txtTintColor;
         root.Q<Button>("SelectRim").style.color = txtTintColor;
+        
         TextDescriptionEmptyView.Q<Label>("ReminderTxt").style.color = txtTintColor;
         settingEmptyView.Q<Label>("ReminderTxt").style.color = txtTintColor;
         appearanceEmptyView.Q<Label>("ReminderTxt").style.color = txtTintColor;
@@ -1096,6 +1115,10 @@ public class UI_Operations : MonoBehaviour
             appearanceEmptyView.style.opacity = 0;
             appearanceSelectedView.style.opacity = maxOpacity;
 
+            if(isInFillSelect)
+                appearanceGB.style.backgroundImage = new StyleBackground(fillSelectedBG);
+            else
+                appearanceGB.style.backgroundImage = new StyleBackground(rimSelectedBG);
         }
         else
         {
@@ -1104,6 +1127,7 @@ public class UI_Operations : MonoBehaviour
             appearanceEmptyView.style.opacity = maxOpacity;
             appearanceSelectedView.style.opacity = 0;
 
+            appearanceGB.style.backgroundImage = new StyleBackground(nonSelectedBG);
         }
     }
 
@@ -1134,7 +1158,6 @@ public class UI_Operations : MonoBehaviour
         tapHandler.SetTopBottomNull(new Vector2(0, bottom));
         
     }
-
 
 
     /// ===============================================================
@@ -1188,6 +1211,7 @@ public class UI_Operations : MonoBehaviour
             input.y * CHECKER_CHART_SIZE + colorPickerButton.resolvedStyle.top -
             pickerIcon.resolvedStyle.height / 2);
     }
+
     public void Cout(string str)
     {
         Debug.Log(str);

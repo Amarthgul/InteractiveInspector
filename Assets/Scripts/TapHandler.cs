@@ -92,6 +92,8 @@ public class TapHandler : MonoBehaviour
     // For counting time between selections 
     private Stopwatch selectionStopwatch = new Stopwatch();
 
+    private bool allowSelectMultiple = false;
+
     // Mark this to true whenever the user makes a new selection 
     public bool newlySelected = false;
 
@@ -143,6 +145,7 @@ public class TapHandler : MonoBehaviour
 
         if (nameOfTapped != null)
         {
+
             // If a valid object is selected, alter its (or others') shader(s)
             AlterTapped(nameOfTapped);
 
@@ -304,6 +307,24 @@ public class TapHandler : MonoBehaviour
     }
 
     /// <summary>
+    /// Inqurey if current tap handler allows the user to select multiple objects. 
+    /// </summary>
+    /// <returns>True if user can select several objects</returns>
+    public bool CanSelectMultiple()
+    {
+        return allowSelectMultiple; 
+    }
+
+    /// <summary>
+    /// Alter whether or not the user can select multiple objects.
+    /// </summary>
+    /// <param name="input">Bool toggle</param>
+    public void SetMultipleSelection(bool input)
+    {
+        allowSelectMultiple = input;
+    }
+
+    /// <summary>
     /// Get the text description of the selected object.
     /// If multiple objects are selected, reutrn the first one on the list. 
     /// If selected object has no description, return error message.
@@ -385,7 +406,7 @@ public class TapHandler : MonoBehaviour
 
 
     /// <summary>
-    /// Try to find which object is selected when detecting a tap. 
+    /// Try to find the name of the object being selected when detecting a tap. 
     /// </summary>
     private string TapResponse()
     {
@@ -484,13 +505,13 @@ public class TapHandler : MonoBehaviour
             if (Physics.Raycast(ray, out hit))
             {
                 // If the ray hit something
-                string selected = hit.transform.name;
+                string baneOfSelected = hit.transform.name;
 
                 // If the start and end of a click is on the same object
                 // it can be assumed that the user is trying to select it
-                if (selected == sessionStartSelected)
+                if (baneOfSelected == sessionStartSelected)
                 {
-                    nameOfTapped = selected; 
+                    nameOfTapped = baneOfSelected; 
                 }
             }
             else
@@ -513,7 +534,12 @@ public class TapHandler : MonoBehaviour
     {
         if (!ValidInput()) return;
 
-        
+        if(!allowSelectMultiple)
+        {
+            UnselectAll();
+            ResetAllShaders();
+        }
+
         // Iterate throught the objects that can be tap selected 
         for (int i = 0; i < canBeTapped.Count; i++)
         {
