@@ -80,6 +80,11 @@ will alter the name disaplyed during runtime.
 
 ## Dev Log 
 
+* June 29th 
+  
+  Changed the selection method, by default the user can only select 1 object. There is now a multiple slection
+  checkbox in the settings, with which the user can select multiple objects. 
+
 * June 26th 
 
   Completely reworked the color picker, hand calculated the 3 different resolutions. 
