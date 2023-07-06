@@ -77,6 +77,9 @@ public class UI_HelpFunction : MonoBehaviour
     /// ======================= Input actions =========================
     private InputAction touchPrimary;
 
+    private InputAction mouseLMB;
+    private InputAction mousePosition;
+
     /// ===============================================================
     /// ======================= Stat variables ========================
 
@@ -90,6 +93,9 @@ public class UI_HelpFunction : MonoBehaviour
     private Label rotText;
     private Label panText;
     private Label zoomText;
+    private GroupBox highlightLMB;
+    private GroupBox highlightRMB;
+    private GroupBox highlightMMB; 
 
     private bool helpButtonSelected = false;
 
@@ -115,14 +121,16 @@ public class UI_HelpFunction : MonoBehaviour
 
     private bool initialUpdated = false;
 
+    private bool lastClick = false;
+    private Vector2 clickStartPos = new Vector2(); 
 
     private bool lastLightModeStat = false;
     private Color UITintColor = new Color();
     private Color txtTintColor = new Color();
 
     private int breathingCycle = 2000; // In milisecond 
-    private Stopwatch breathingSW = new Stopwatch();    
-
+    private int breathOffset = 500;
+    private Stopwatch breathingSW = new Stopwatch();
 
     private void OnEnable() 
     {
@@ -135,6 +143,9 @@ public class UI_HelpFunction : MonoBehaviour
         rotText  = helpInstructionsGB.Q<Label>("RotText");
         panText  = helpInstructionsGB.Q<Label>("PanText");
         zoomText = helpInstructionsGB.Q<Label>("ZoomText");
+        highlightLMB = helpInstructionsGB.Q<GroupBox>("LMB");
+        highlightRMB = helpInstructionsGB.Q<GroupBox>("RMB");
+        highlightMMB = helpInstructionsGB.Q<GroupBox>("MMB");
 
         helpInstructionButton.clicked += () => ToggleHelpInstructionDisplay();
     }
@@ -154,7 +165,8 @@ public class UI_HelpFunction : MonoBehaviour
         panText.text = panInstruction;
         zoomText.text = zoomInstruction;
 
-        
+        breathingSW.Start();
+        UpdateBreathingAnimation(); 
     }
 
     // Update is called once per frame
@@ -166,9 +178,11 @@ public class UI_HelpFunction : MonoBehaviour
         UpdateTheme();
     }
 
-    public void Initialize(InputAction PT)
+    public void Initialize(InputAction PT, InputAction LMB, InputAction MP)
     {
         touchPrimary = PT;
+        mouseLMB = LMB;
+        mousePosition = MP;
     }
 
     /// ===============================================================
@@ -200,6 +214,8 @@ public class UI_HelpFunction : MonoBehaviour
 
             helpInstructionButton.style.unityBackgroundImageTintColor = Globals.buckeyeHighlight;
         }
+
+        breathingSW.Restart() ;
     }
 
     /// <summary>
@@ -248,29 +264,54 @@ public class UI_HelpFunction : MonoBehaviour
             && tapProtectionSW.ElapsedMilliseconds > tapProtectionPeriod)
         {
             TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
-
+            Vector2 topBottomLim = new Vector2(
+                Screen.height - helpInstructionsGB.resolvedStyle.top * Globals._scalingRatio.y,
+                Screen.height - (helpInstructionsGB.resolvedStyle.top + helpInstructionsGB.resolvedStyle.height) * Globals._scalingRatio.y);
             Vector2 position = new Vector2(); 
             bool newTap = false;
 
             if(!Globals.webMode && currentTouchF1.tapCount != lastTapCount)
             {
-                newTap = true; 
                 position = currentTouchF1.position; 
+                if (position.y > topBottomLim.x ||
+                    position.y < topBottomLim.y)
+                    newTap = true;
             }
             if (Globals.webMode)
             {
+                
+                if (mouseLMB.IsPressed() && !lastClick)
+                {
+                    // Rrcord the position when a click started 
+                    clickStartPos = mousePosition.ReadValue<Vector2>();
+                }
+                if (!mouseLMB.IsPressed() && lastClick)
+                {
+                    // Record the position when a click ended 
+                    Vector2 currentPos = mousePosition.ReadValue<Vector2>();
+
+                    // If the start and end position of the click is in valid zone,
+                    // then this can be viewed as tryign to click outside and cancel 
+                    // the display of the help instructions. 
+                    if ((clickStartPos.y > topBottomLim.x || clickStartPos.y < topBottomLim.y) &&
+                        (currentPos.y > topBottomLim.x || currentPos.y < topBottomLim.y))
+                    {
+                        newTap = true;
+
+                    }
+                }
 
             }
 
 
 
-            if (newTap && (position.y > INSTRUCTION_GB_TOP + INSTRUCTION_GB_HEIGHT ||
-                    position.y < INSTRUCTION_GB_TOP)) 
+            if (newTap) 
             {
                 ToggleHelpInstructionDisplay();
             }
 
             lastTapCount = currentTouchF1.tapCount;
+            lastClick = mouseLMB.IsPressed(); 
 
             UpdateBreathingAnimation(); 
         }
@@ -282,7 +323,9 @@ public class UI_HelpFunction : MonoBehaviour
     /// </summary>
     private void UpdateBreathingAnimation()
     {
-
+        highlightLMB.style.opacity = Breath(breathingSW.ElapsedMilliseconds, 0);
+        highlightRMB.style.opacity = Breath(breathingSW.ElapsedMilliseconds, -breathOffset);
+        highlightMMB.style.opacity = Breath(breathingSW.ElapsedMilliseconds, -breathOffset * 2);
     }
 
     /// <summary>
@@ -353,5 +396,10 @@ public class UI_HelpFunction : MonoBehaviour
     {
         return Mathf.Clamp( Mathf.Sin((valueX + offset) * (Mathf.PI * 2) / breathingCycle), 
             0f, 1f);
+    }
+
+    public void Cout(string str)
+    {
+        Debug.Log(str);
     }
 }

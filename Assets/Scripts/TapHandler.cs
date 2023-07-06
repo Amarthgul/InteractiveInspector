@@ -62,7 +62,7 @@ public class TapHandler : MonoBehaviour
         "UI has on camera and its touch control.")]
     [Space(5)]
 
-    [Tooltip("Part of top and bottom screen becomes unresponsive when UIs are active")]
+    [Tooltip("Part of top and bottom screen becomes unrehsponsive when UIs are active")]
     [SerializeField] Vector2 topBottomNullArea = Vector2.zero;
 
 
@@ -132,23 +132,23 @@ public class TapHandler : MonoBehaviour
     {
         string nameOfTapped;
 
+        // By design, newlySelected is only updated to True in 1 single update cycle, 
+        // after which it will go back to False until a new object is selected. 
+        // This keep the flag as flase at the start of every Update cycle. 
+        newlySelected = false;
+
         if (Globals.webMode)
-        {
             nameOfTapped = TapResponseWeb();
-
-
-        }
         else
-        {
             nameOfTapped = TapResponse();
-        }
+        
 
         if (nameOfTapped != null)
         {
-
             // If a valid object is selected, alter its (or others') shader(s)
             AlterTapped(nameOfTapped);
 
+            // Newly selected flag is used for auto voiceover in UI operations 
             if (nameOfTapped != lastSelected && IsSelected(nameOfTapped))
             {
                 newlySelected = true;
@@ -161,15 +161,16 @@ public class TapHandler : MonoBehaviour
         }
         if (nameOfTapped == NONE)
         {
-
+            // If the click/tap is in UI area, do nothing.
             if (!ValidInput()) return;
 
-            // If tapped outside of objects, resets all effects 
+            // If tapped outside of objects and also not in UI area, resets all effects 
             ResetAllShaders();
         }
 
+        // Since the opacity controlls all selected/not selected objects,
+        // the opacity update is performedd in every update cycle. 
         UpdateOpacity();
-
     }
 
     /// ===============================================================
@@ -656,6 +657,11 @@ public class TapHandler : MonoBehaviour
         
     }
 
+    /// <summary>
+    /// If the object of the given name is being selected.
+    /// </summary>
+    /// <param name="name">Object name to make the inquery</param>
+    /// <returns>True if this object is selected</returns>
     private bool IsSelected(string name)
     {
         for (int i = 0; i < selected.Count; i++)

@@ -112,11 +112,6 @@ public class UI_Operations : MonoBehaviour
     /// ===============================================================
     /// ======================== Stat variables =======================
 
-    // Unity UI is disgustingly ununified, with display resoultion, render
-    // resoultion, logic resoultion all doing their own thing. This ratio
-    // is used in hope that it can somehow reduce the inconsistency. 
-    private Vector2 _scalingRatio = new Vector2(); 
-
     private VisualElement root;
 
     private GroupBox optionsGB;
@@ -307,7 +302,7 @@ public class UI_Operations : MonoBehaviour
     void Update()
     {
 
-        UpdateVisbility();
+        GeneralUpdate();
 
         UpdateTheme();
 
@@ -342,12 +337,12 @@ public class UI_Operations : MonoBehaviour
     /// the setting, the text, and the appearance panel. 
     /// If nothing is selected, then none of these UI will show up. 
     /// </summary>
-    private void UpdateVisbility()
+    private void GeneralUpdate()
     {
         if (tapHandler.HasSelected() || panelAlwaysVisible)
         {
             // When something is selected or the panel is set to be always visible,
-            // fade in and show the selection panel UIs
+            // fade in and show the selection panel UIs, then keep it there
             currentOpacity += fadeSpeed * Time.deltaTime;
             if (currentOpacity >= maxOpacity - opacityThreshold)
             {
@@ -372,7 +367,6 @@ public class UI_Operations : MonoBehaviour
         UpdateAppearanceGB();
         UpdateTextGB();
         UpdateEmpty();
-
 
     }
 
@@ -433,7 +427,7 @@ public class UI_Operations : MonoBehaviour
         }
 
         // This slider only shows up with setting panel
-        // So update is only performed within 
+        // So update is only performed when this panel is up
         UpdateTouchSensitivity();
 
         UpdateRersetButton();
@@ -522,9 +516,12 @@ public class UI_Operations : MonoBehaviour
             }
         }
 
+        // Transfer user set opacities to the tapHander
+        // The tapHandler will perfrom its own opacity update with these stats 
         tapHandler.SetSelectedOpacity(selectedOpaSlider.value);
         tapHandler.SetUnselectedOpacity(unselectedOpaSlider.value);
 
+        // Update for continously moving the eyedropper to pick colors
         UpdateContinuousPick();
     }
 
@@ -703,12 +700,6 @@ public class UI_Operations : MonoBehaviour
 
             RefreshTexts();
 
-            // If auto-play is enabled, then play the audio once the text panel shows up
-            if (autoVoiceover) 
-            {
-                ManuallyPlayAudiop(); 
-            }
-
             activeUI[Globals.UIElements.Text] = true;
             if (!textTransitioning)
             {
@@ -744,7 +735,29 @@ public class UI_Operations : MonoBehaviour
 
                 TextDescriptionGB.style.opacity = progression * maxOpacity;
             }
+
+            // Update the tint color of the play icon 
+            if (playSoundPressed && playSoundTintSW.ElapsedMilliseconds < playSoundTintTime)
+            {
+                // After stopwatch counts beyond playSoundTintTime, calculation stops and thus
+                // does not need to judge whether or not the color goes beyond 1
+                float progression = Sigmoid((float)playSoundTintSW.ElapsedMilliseconds / playSoundTintTime);
+                Color currentColor = progression * Color.white + (1 - progression) * Globals.buckeyeHighlight;
+
+                playAudioButton.style.unityBackgroundImageTintColor = currentColor;
+            }
+
+            if (tapHandler.newlySelected)
+            {
+                RefreshTexts();
+
+                if (tapHandler.HasSelected() && autoVoiceover)
+                {
+                    ManuallyPlayAudiop();
+                }
+            }
         }
+
 
         // Fly out animation and fade out 
         if (!activeUI[Globals.UIElements.Text])
@@ -771,21 +784,6 @@ public class UI_Operations : MonoBehaviour
             }
         }
 
-        // Update the tint color of the play icon 
-        if (playSoundPressed && playSoundTintSW.ElapsedMilliseconds < playSoundTintTime)
-        {
-            // After stopwatch counts beyond playSoundTintTime, calculation stops and thus
-            // does not need to judge whether or not the color goes beyond 1
-            float progression = Sigmoid((float)playSoundTintSW.ElapsedMilliseconds / playSoundTintTime);
-            Color currentColor = progression * Color.white + (1 - progression) * Globals.buckeyeHighlight;
-
-            playAudioButton.style.unityBackgroundImageTintColor = currentColor;
-        }
-
-        if (tapHandler.newlySelected)
-        {
-            RefreshTexts();
-        }
     }
 
     /// <summary>
@@ -880,16 +878,16 @@ public class UI_Operations : MonoBehaviour
 
             // Offset of the down-left point of the color picker chart selection zone 
             Vector2 colorPickingAreaOffset = new Vector2(
-                Screen.width - appearanceGB.resolvedStyle.width * _scalingRatio.x
-                + colorPickerButton.resolvedStyle.marginLeft * _scalingRatio.x, 
-                Screen.height - appearanceGB.resolvedStyle.top * _scalingRatio.y
-                - root.Q<VisualElement>("VisualElement").resolvedStyle.top * _scalingRatio.y
-                - appearanceGB.resolvedStyle.height * _scalingRatio.y 
-                + colorPickerButton.resolvedStyle.marginBottom * _scalingRatio.y
+                Screen.width - appearanceGB.resolvedStyle.width * Globals._scalingRatio.x
+                + colorPickerButton.resolvedStyle.marginLeft * Globals._scalingRatio.x, 
+                Screen.height - appearanceGB.resolvedStyle.top * Globals._scalingRatio.y
+                - root.Q<VisualElement>("VisualElement").resolvedStyle.top * Globals._scalingRatio.y
+                - appearanceGB.resolvedStyle.height * Globals._scalingRatio.y 
+                + colorPickerButton.resolvedStyle.marginBottom * Globals._scalingRatio.y
                 );
 
             // Relative position in the picking zone, value in [0, 1] range on each axis
-            translated = (position - colorPickingAreaOffset) / (CHECKER_CHART_SIZE * _scalingRatio.x);
+            translated = (position - colorPickingAreaOffset) / (CHECKER_CHART_SIZE * Globals._scalingRatio.x);
             translated.y  = 1 - translated.y;
 
             // Absolute position of the picker icon inside the Appearance group box 
@@ -916,6 +914,10 @@ public class UI_Operations : MonoBehaviour
                 else
                     rimColorPosition = translated;
 
+                // Only when the target location is within the color picking zone will this action
+                // be viewed as valid.
+                // Web for some reason will make the eyedropper go beyond the bound despite the
+                // debug shows no problem. 
                 valid = true;
             }
             
@@ -932,15 +934,19 @@ public class UI_Operations : MonoBehaviour
             // This invert the sign and offset the effect of the margin.
             //Vector2 translated = new Vector2(localPos.x, -localPos.y - DROPPER_TRANSFORM_OFFSET);
             translated = new Vector2(localPos.x, -localPos.y) / CHECKER_CHART_SIZE;
+
+            // Moving eyedropper on iOS is always treated as a valid action
             valid = true;
         }
 
         if (valid)
-            AlterColor(translated );
+            AlterColor(translated);
     }
 
     /// <summary>
-    /// Check is continuous picking is allowed and perform related tasks
+    /// Check if continuous picking is allowed and perform related tasks.
+    /// Note that when in WebMode, this is practically useless due to the limited
+    /// computational ability of a web browser. 
     /// </summary>
     private void UpdateContinuousPick()
     {
@@ -950,7 +956,7 @@ public class UI_Operations : MonoBehaviour
 
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
         Vector2 colorPickingAreaOffset = new Vector2(
-                appearanceGB.resolvedStyle.left * _scalingRatio.x,
+                appearanceGB.resolvedStyle.left * Globals._scalingRatio.x,
                 appearanceGB.resolvedStyle.top
                 );
         Vector2 localPos; 
@@ -962,9 +968,9 @@ public class UI_Operations : MonoBehaviour
         {
             position = mousePosition.ReadValue<Vector2>();
             localPos = new Vector2(
-                (position.x - colorPickingAreaOffset.x) / _scalingRatio.x -
+                (position.x - colorPickingAreaOffset.x) / Globals._scalingRatio.x -
                 colorPickerButton.resolvedStyle.marginLeft,
-                -(position.y - colorPickingAreaOffset.y) / _scalingRatio.y +
+                -(position.y - colorPickingAreaOffset.y) / Globals._scalingRatio.y +
                 colorPickerButton.resolvedStyle.marginTop + pickerIcon.resolvedStyle.width / 2
                 );
         }
@@ -986,9 +992,10 @@ public class UI_Operations : MonoBehaviour
     }
 
     /// <summary>
-    /// Alter the color of the selected parts and update dropper position. 
+    /// Alter the color of the selected parts and update theeyedropper position. 
     /// </summary>
-    /// <param name="precentLocation"></param>
+    /// <param name="precentLocation">Location of the eyedropper 
+    /// relative to the color picking zone</param>
     private void AlterColor(Vector2 precentLocation)
     {
         Texture2D bgImage = textureFromSprite(colorPcikerTexture);
@@ -996,9 +1003,10 @@ public class UI_Operations : MonoBehaviour
         int pixelX = (int)(precentLocation.x * bgImage.width);
         int pixelY = (int)(precentLocation.y * bgImage.height);
 
-
+        // Accquire the RGB from the color image by position of the pixel 
         Color selectedColor = bgImage.GetPixel(pixelX, bgImage.height - pixelY) ;
 
+        // This is for update eyedropper position when releasing for iOS
         if (!Globals.webMode)
         {
             Vector2 updatedPos = new Vector2(
@@ -1018,7 +1026,6 @@ public class UI_Operations : MonoBehaviour
         {
             fillColorPosition = precentLocation;
             tapHandler.SetFillColor(selectedColor);
-
         }
         else
         {
@@ -1046,6 +1053,8 @@ public class UI_Operations : MonoBehaviour
                 UITintColor = Globals.darkModeUITint;
                 txtTintColor = Globals.darkModeTxtTint;
             }
+
+            // After set the UI and text color, broadcast the color to all elements 
             UpdateAllModeTintColors(); 
         }
 
@@ -1113,8 +1122,8 @@ public class UI_Operations : MonoBehaviour
 
     /// <summary>
     /// Update the visibility of the content of each group box.
-    /// For appearance and text description, nothing can be displayed if nothing is selected,
-    /// they thus show a sub-groupbox asking the user to select something. When there is 
+    /// For appearance and text description, no options can be displayed if nothing is selected,
+    /// they thus show a empty panel with text asking the user to select something. When there is 
     /// at least 1 active selection, then these 2 group boxes will show the corresponding options. 
     /// Setting can be accessed with or without active selection, though. 
     /// </summary>
@@ -1146,6 +1155,8 @@ public class UI_Operations : MonoBehaviour
     /// <summary>
     /// Update the screen size and the corresponding UI widths, broadcast these stats
     /// to camera and taphandler, or other components that need to use these values. 
+    /// 
+    /// This is needed b/c Unity logic resoultion and actual display resolution is different. 
     /// </summary>
     private void UpdateDynamicScale()
     {
@@ -1155,11 +1166,11 @@ public class UI_Operations : MonoBehaviour
         Vector2 stpMin = RuntimePanelUtils.ScreenToPanel(_panel, new Vector2(0, 0));
         Vector2 stpMax = RuntimePanelUtils.ScreenToPanel(_panel, ssize);
         Vector2 stpSize = stpMax - stpMin;
-        _scalingRatio = ssize / stpSize;
+        Globals._scalingRatio = ssize / stpSize;
 
-        float left = settingsGB.resolvedStyle.width * _scalingRatio.x;
-        float right = appearanceGB.resolvedStyle.width * _scalingRatio.x;
-        float bottom = (optionsGB.resolvedStyle.height - optionsGB.resolvedStyle.bottom) * _scalingRatio.y;
+        float left = settingsGB.resolvedStyle.width * Globals._scalingRatio.x;
+        float right = appearanceGB.resolvedStyle.width * Globals._scalingRatio.x;
+        float bottom = (optionsGB.resolvedStyle.height - optionsGB.resolvedStyle.bottom) * Globals._scalingRatio.y;
 
         // Protected area is updated constantly to reflect
         // the change in direction (landscape and portrait mode)

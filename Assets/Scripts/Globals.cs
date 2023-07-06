@@ -19,6 +19,10 @@ public class Globals : MonoBehaviour
     /// </summary>
     public static bool DEBUGGING = false;
 
+    /// <summary>
+    /// The ratio between logical resolution and physical/screen resoultion 
+    /// </summary>
+    public static Vector2 _scalingRatio = new Vector2(); 
 
     /// <summary>
     /// Light mode changes the UIs to white and font/icons to black. 
@@ -30,7 +34,6 @@ public class Globals : MonoBehaviour
 
     public static Color darkModeUITint = new Color(.1f, .1f, .1f);
     public static Color darkModeTxtTint = new Color(.9f, .9f, .9f);
-
 
 
     // 1000 milisecond in a second, used to convert second to milisecond 
@@ -46,7 +49,6 @@ public class Globals : MonoBehaviour
     public static Vector2 iPadAir4thGen = new Vector2(1640, 2360);
 
     
-
     /// <summary>
     /// The list of states for a touch session that would be treated as inactive,
     /// that is, the user is not making active interaction with the application.

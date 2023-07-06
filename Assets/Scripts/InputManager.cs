@@ -41,7 +41,9 @@ public class InputManager : MonoBehaviour
             inputScheme.Desktop.LeftClick,
             inputScheme.Desktop.MousePosition);
 
-        UIHF.Initialize(inputScheme.iOS.Primary);
+        UIHF.Initialize(inputScheme.iOS.Primary,
+            inputScheme.Desktop.LeftClick,
+            inputScheme.Desktop.MousePosition);
         
         UIO.Initialize(inputScheme.iOS.Primary, 
             inputScheme.Desktop.LeftClick,

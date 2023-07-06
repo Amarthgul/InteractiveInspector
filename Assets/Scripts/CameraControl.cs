@@ -325,16 +325,8 @@ public class CameraControl : MonoBehaviour
             UpdateState();
             UpdateSelfAnimation();
 
-            //if (lockOnTarget)
-            //{
-            //    UpdateTargetLock();
-            //}
-            //else
-            //{
-            //    UpdateFreeMovement();
-            //}
-
-            CheckDoubleClick();
+            // Check for resetting camera location 
+            //CheckDoubleClick();
             CheckDoubleTap();
         }
 
@@ -711,8 +703,9 @@ public class CameraControl : MonoBehaviour
     /// </summary>
     private void CheckDoubleClick()
     {
-        // Since a new reset button is added in ver 0.11, this function is no longer needed
-        return; 
+        // Skip this function for iOS release 
+        if(!Globals.webMode)
+            return; 
 
         // Start a potential double click listener (double tap has been moved into another method)
         if (mouseRMB.ReadValue<float>() == 1f ) // ||
