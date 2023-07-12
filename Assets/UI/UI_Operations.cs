@@ -174,6 +174,8 @@ public class UI_Operations : MonoBehaviour
     private Stopwatch resetButtonTintSW = new Stopwatch();
 
     private bool isInFillSelect = true; 
+    private Vector2 translated = new Vector2();
+    private Vector2 colorPickingAreaOffset = new Vector2(); 
 
     // Position of the rim color dropper in percentage location of the color chart 
     private static Vector2 rimRecord = new Vector2(.6f, .6f);
@@ -521,8 +523,10 @@ public class UI_Operations : MonoBehaviour
         tapHandler.SetSelectedOpacity(selectedOpaSlider.value);
         tapHandler.SetUnselectedOpacity(unselectedOpaSlider.value);
 
-        // Update for continously moving the eyedropper to pick colors
+        // Updates for continously moving the eyedropper to pick colors
+        UpdateColorPickingPositions();
         UpdateContinuousPick();
+        
     }
 
     /// <summary>
@@ -869,26 +873,10 @@ public class UI_Operations : MonoBehaviour
     {
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
         Vector2 localPos;
-        Vector2 translated;
         bool valid = false;
 
         if (Globals.webMode)
-        {
-            Vector2 position = mousePosition.ReadValue<Vector2>();
-
-            // Offset of the down-left point of the color picker chart selection zone 
-            Vector2 colorPickingAreaOffset = new Vector2(
-                Screen.width - appearanceGB.resolvedStyle.width * Globals._scalingRatio.x
-                + colorPickerButton.resolvedStyle.marginLeft * Globals._scalingRatio.x, 
-                Screen.height - appearanceGB.resolvedStyle.top * Globals._scalingRatio.y
-                - root.Q<VisualElement>("VisualElement").resolvedStyle.top * Globals._scalingRatio.y
-                - appearanceGB.resolvedStyle.height * Globals._scalingRatio.y 
-                + colorPickerButton.resolvedStyle.marginBottom * Globals._scalingRatio.y
-                );
-
-            // Relative position in the picking zone, value in [0, 1] range on each axis
-            translated = (position - colorPickingAreaOffset) / (CHECKER_CHART_SIZE * Globals._scalingRatio.x);
-            translated.y  = 1 - translated.y;
+        {// WebGL implementation 
 
             // Absolute position of the picker icon inside the Appearance group box 
             Vector2 recordPos = new Vector2(
@@ -900,7 +888,7 @@ public class UI_Operations : MonoBehaviour
                 );
 
             if (Globals.DEBUGGING)
-                Debug.Log("Input positon: " + position + "    Offse by " + colorPickingAreaOffset + "    translate to: " + translated + "      recordPos: " + recordPos);
+                Debug.Log("Offset by " + colorPickingAreaOffset + "    translate to: " + translated + "      recordPos: " + recordPos);
 
             if(translated.y > 0 && translated.y < 1)
             {
@@ -923,7 +911,8 @@ public class UI_Operations : MonoBehaviour
             
         }
         else
-        {
+        {// iOS implementation 
+
             Vector2 position = new Vector2(currentTouchF1.position.x,
             currentTouchF1.position.y + DROPPER_TRANSFORM_OFFSET);
 
@@ -955,24 +944,19 @@ public class UI_Operations : MonoBehaviour
         if (!allowContinuousPick || !activeUI[Globals.UIElements.Appearance]) return;
 
         TouchState currentTouchF1 = touchPrimary.ReadValue<TouchState>();
-        Vector2 colorPickingAreaOffset = new Vector2(
-                appearanceGB.resolvedStyle.left * Globals._scalingRatio.x,
-                appearanceGB.resolvedStyle.top
-                );
         Vector2 localPos; 
 
         Vector2 position = new Vector2(currentTouchF1.position.x, 
             currentTouchF1.position.y + DROPPER_TRANSFORM_OFFSET);
 
-        if (Globals.webMode)
+        if (Globals.webMode && mouseLMB.IsPressed())
         {
-            position = mousePosition.ReadValue<Vector2>();
-            localPos = new Vector2(
-                (position.x - colorPickingAreaOffset.x) / Globals._scalingRatio.x -
-                colorPickerButton.resolvedStyle.marginLeft,
-                -(position.y - colorPickingAreaOffset.y) / Globals._scalingRatio.y +
-                colorPickerButton.resolvedStyle.marginTop + pickerIcon.resolvedStyle.width / 2
-                );
+            // Scale the [0, 1] ratio by CHECKER_CHART_SIZE
+            // to make this compatible with the IOS implementation 
+            localPos = translated * CHECKER_CHART_SIZE; 
+
+            if (Globals.DEBUGGING)
+                Cout("Result by local: " + localPos);
         }
         else
         {
@@ -1006,7 +990,8 @@ public class UI_Operations : MonoBehaviour
         // Accquire the RGB from the color image by position of the pixel 
         Color selectedColor = bgImage.GetPixel(pixelX, bgImage.height - pixelY) ;
 
-        // This is for update eyedropper position when releasing for iOS
+        // This is for update eyedropper position when releasing for iOS. 
+        // WebGL in this context does not need a special if case. 
         if (!Globals.webMode)
         {
             Vector2 updatedPos = new Vector2(
@@ -1182,6 +1167,36 @@ public class UI_Operations : MonoBehaviour
         
     }
 
+    /// <summary>
+    /// Update and sync the position of the mouse in relative to the color picking
+    /// area.
+    /// This method is separated as a standalone method due to the realtive position
+    /// of the cursor changes with device and screen size, and 2 other methods need
+    /// the positional data to make their judgement. 
+    /// </summary>
+    private void UpdateColorPickingPositions()
+    {
+        // This method is not needed when the LMB is not presseed 
+        if (!mouseLMB.IsPressed()) return; 
+
+        Vector2 position = mousePosition.ReadValue<Vector2>();
+
+        // Offset of the down-left point of the color picker chart selection zone.
+        // From screen down-left, i.e., [0, 0] to color picker down-left
+        colorPickingAreaOffset = new Vector2(
+            Screen.width - appearanceGB.resolvedStyle.width * Globals._scalingRatio.x
+            + colorPickerButton.resolvedStyle.marginLeft * Globals._scalingRatio.x,
+            Screen.height - appearanceGB.resolvedStyle.top * Globals._scalingRatio.y
+            - root.Q<VisualElement>("VisualElement").resolvedStyle.top * Globals._scalingRatio.y
+            - appearanceGB.resolvedStyle.height * Globals._scalingRatio.y
+            + colorPickerButton.resolvedStyle.marginBottom * Globals._scalingRatio.y
+            );
+
+        // Relative position in the picking zone, value in [0, 1] range on each axis
+        translated = (position - colorPickingAreaOffset) / (CHECKER_CHART_SIZE * Globals._scalingRatio.x);
+        // Since the image pixel coordinate is upside down, y axis needs to be inversed 
+        translated.y = 1 - translated.y;
+    }
 
     /// ===============================================================
     /// ======================= Utility Methods =======================

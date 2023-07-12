@@ -17,7 +17,7 @@ public class Globals : MonoBehaviour
     /// A gloabl flag to save the effort of rewritting all the log message into the build
     /// for testing the disgusting difference between Game window and actual brower/app. 
     /// </summary>
-    public static bool DEBUGGING = false;
+    public static bool DEBUGGING = true;
 
     /// <summary>
     /// The ratio between logical resolution and physical/screen resoultion 

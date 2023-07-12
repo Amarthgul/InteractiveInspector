@@ -326,7 +326,7 @@ public class CameraControl : MonoBehaviour
             UpdateSelfAnimation();
 
             // Check for resetting camera location 
-            //CheckDoubleClick();
+            // CheckDoubleClick(); // Prob don't need this 
             CheckDoubleTap();
         }
 
@@ -507,9 +507,9 @@ public class CameraControl : MonoBehaviour
     }
 
     /// <summary>
-    /// All camera control updates in thie method, including rotate, pan, and zoom. 
-    /// Beaware, this is the most complicated method due to it incorporated both touch
-    /// and mouse operation. 
+    /// All camera control updates in thie method, including rotate, pan, and zoom
+    /// when using touch on iOS or mouse in a web browser. 
+    /// This is probably the most complicated method in this class. 
     /// </summary>
     private void UpdateTouchControl()
     {
