@@ -97,6 +97,18 @@ will alter the name disaplyed during runtime.
 
 ## Dev Log 
 
+* July 12th 
+
+  Added a breahting animation to the help instructions, further tidied up the code. Optimized the color picking algorithm
+  so that it works properly on different screen resolutions. 
+
+* July 5th 
+
+  Auto voiceover now function properly, when the text description panel is on, whenever a new object is selected, 
+  its voice description will be played automaitcally. 
+
+  Help instruction can now be clicked outside to hide, and the highlight has animations to signify which key to use. 
+
 * June 29th 
   
   Changed the selection method, by default the user can only select 1 object. There is now a multiple slection
