@@ -77,8 +77,8 @@ export function getRockScene00PartsPaths() {
 }
 
 export function std135Aov(focalLength) {
-    // Given a focal length in mm, convert it into angle of view,
-    // assuming it is used on an standard 135 format still camera. 
+    // Given a focal length in mm, convert focal length into angle of view,
+    // assuming the lens is mounted on an standard 135 format still camera. 
     return Math.atan(18 / focalLength) * 2 * (180 / Math.PI);
 }
 

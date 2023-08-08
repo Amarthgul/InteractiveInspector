@@ -103,6 +103,7 @@ export class RenderCanvas {
     // ---------------------------------------------------------------------
     // Read and load the objects into the scene 
     loadGeometries() {
+        var scope = this; // Store this reference to be used in functions 
 
         const textureLoader = new THREE.TextureLoader();
         const pbrMaterial = new MeshStandardMaterial({
@@ -123,11 +124,11 @@ export class RenderCanvas {
             modelLoader.load(path,
                 function (obj) {
                     obj.traverse(function (child) {
-                        //if (child instanceof THREE.Mesh && this.#useTextures) {
-                        //    child.material = pbrMaterial;
-                        //}
+                        if (child instanceof THREE.Mesh && scope.#useTextures) {
+                            child.material = pbrMaterial;
+                        }
                     });
-                    this.#scene.add(obj);
+                    scope.#scene.add(obj);
                 },
                 function (xhr) {
                     //console.log((xhr.loaded / xhr.total * 100) + "% loaded")
@@ -140,10 +141,12 @@ export class RenderCanvas {
     }
 
     update = (time) => {
-        const canvas = this.#renderer.domElement;
-        this.#camera.aspect = canvas.clientWidth / canvas.clientHeight;
-        this.#camera.updateProjectionMatrix();
-
+        if (resizeRendererToDisplaySize(this.#renderer)) {
+            const canvas = this.#renderer.domElement;
+            this.#camera.aspect = canvas.clientWidth / canvas.clientHeight;
+            this.#camera.updateProjectionMatrix();
+        }
+        
         requestAnimationFrame(this.update); // Context is automatically preserved
         this.#controls.update();
         this.#renderer.render(this.#scene, this.#camera);
@@ -175,100 +178,4 @@ function resizeRendererToDisplaySize(renderer) {
         renderer.setSize(width, height, false);
     }
     return needResize;
-}
-
-
-
-export function renderCanvasMain() {
-
-    // Accquiring the element and set it as the render target 
-    const canvas = document.querySelector('#c');
-    const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
-
-    renderer.setClearColor(0x000000, 0); // Turn background transparent 
-    document.getElementById("mainContainer").appendChild(renderer.domElement); // To use later for trackball 
-
-	// Set up the camera 
-    const fov = std135Aov(50);
-    const aspect = 2;  // the canvas default
-    const near = 0.1;
-    const far = 2000;
-    const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-    camera.position.z = 100;
-
-	// Create the lights 
-    const color = 0xFFFFFF;
-    const intensity1 = 1;
-    const light1 = new THREE.DirectionalLight(color, intensity1);
-    light1.position.set(-1, 2, 4);
-    const intensity2 = 0.75;
-    const light2 = new THREE.DirectionalLight(color, intensity2);
-    light2.position.set(1, -2, -4);
-
-	// Create the scene and add the object and light 
-    const scene = new THREE.Scene();
-    scene.add(light1); 
-    scene.add(light2); 
-
-    // Load all the objects 
-    const textureLoader = new THREE.TextureLoader();
-    const pbrMaterial = new MeshStandardMaterial({
-        map: textureLoader.load(MonkeySkullMaps.diffuse),
-        normalMap: textureLoader.load(MonkeySkullMaps.normal),
-        normalScale: new THREE.Vector2(1, 1),
-        emissiveMap: textureLoader.load(MonkeySkullMaps.diffuse),
-        emissiveIntensity: .5
-    });
-
-    var modelLoader = null; 
-    if (useFBX)
-        modelLoader = new FBXLoader();
-    else
-        modelLoader = new OBJLoader();
-
-    for (let path of modelToUse()) {
-        modelLoader.load(path,
-            function (obj) {
-                obj.traverse(function (child) {
-                    if (child instanceof THREE.Mesh && useTextures) {
-                        child.material = pbrMaterial;
-                    }
-                });
-                scene.add(obj);
-            },
-            function (xhr) {
-                console.log((xhr.loaded / xhr.total * 100) + "% loaded")
-            },
-            function (err) {
-                console.error("Error loading 'ship.obj'")
-            }
-        )
-    }
-	
-
-	// Create the trackball control 
-	const controls = new TrackballControls(camera, renderer.domElement); 
-	controls.rotateSpeed = 4;
-	controls.dynamicDampingFactor = 0.1;
-		
-	
-    function Update(time) {
-
-        //const canvas = renderer.domElement;
-        //camera.aspect = canvas.clientWidth / canvas.clientHeight;
-        //camera.updateProjectionMatrix();
-
-        if (resizeRendererToDisplaySize(renderer)) {
-            const canvas = renderer.domElement;
-            camera.aspect = canvas.clientWidth / canvas.clientHeight;
-            camera.updateProjectionMatrix();
-        }
-		
-        requestAnimationFrame(Update);
-		controls.update();
-		
-		renderer.render(scene, camera);
-    }
-
-    requestAnimationFrame(Update);
 }

@@ -8,7 +8,7 @@
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
 
-// Old redner canvas way 
+// Old procedual redner canvas way 
 
 function resizeRendererToDisplaySize(renderer) {
     // Resize the render area to accommodate the change of resoultion

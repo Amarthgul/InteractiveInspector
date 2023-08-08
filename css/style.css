@@ -7,7 +7,7 @@ html, body {
     text-align: center;
 }
 
-
+/* taller than it should be due to canvas moving downward */
 #mainContainer {
     display: flex;
     position: relative;
@@ -27,7 +27,7 @@ ul {
     height: 10%; 
     background-color: #dddddd;
 }
-
+ 
 li {
     float: left;
     padding: 2%;
