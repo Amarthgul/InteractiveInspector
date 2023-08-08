@@ -53,7 +53,9 @@ const _PartsNamesMonkeySkull = [
     'PartParitalRight.obj'
 ]
 
-
+const _PartsRockScene00 = [
+    'RockScene_00.fbx'
+]
 
 // ---------------------------------------------------------------------
 // ----------------------------- Functions -----------------------------
@@ -69,9 +71,13 @@ export function getMonkeySkullPartsPaths() {
     return pathList; 
 }
 
+export function getRockScene00PartsPaths() {
+    // Return the path to the rock scene (which has only 1 part)
+    return [rootPath + modelSubFolder + _PartsRockScene00]; 
+}
 
-export function std135Fov(focalLength) {
-    // Given a focal length in mm, convert it into field of view,
+export function std135Aov(focalLength) {
+    // Given a focal length in mm, convert it into angle of view,
     // assuming it is used on an standard 135 format still camera. 
     return Math.atan(18 / focalLength) * 2 * (180 / Math.PI);
 }

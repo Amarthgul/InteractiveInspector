@@ -5,6 +5,12 @@ but took a different implementation and is built specifically for running on bro
 
 ## Dev Log 
 
+* July 7th 
+
+  Updated the model and started to load the rock scene. 
+
+  Working on back-end and trying to convert the structure to fully OOP. 
+
 * July 26th
   
   Updated file structure and added the icon. 
