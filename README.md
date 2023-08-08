@@ -9,10 +9,11 @@ but took a different implementation and is built specifically for running on bro
 
   Updated the model and started to load the rock scene. 
 
-  Working on back-end and trying to convert the structure to fully OOP. 
+  Switched the coding method from procedual to object oriented. 
 
 * July 26th
   
-  Updated file structure and added the icon. 
+  Updated file structure and added the icon. Javascript files are now separated from
+  the main HTML, so does the CSS. 
 
 

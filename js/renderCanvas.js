@@ -140,8 +140,24 @@ export class RenderCanvas {
         }
     }
 
+    // ---------------------------------------------------------------------
+    resizeRendererToDisplaySize(renderer) {
+        // Resize the render area to accommodate the change of resoultion
+        const canvas = renderer.domElement;
+        const pixelRatio = window.devicePixelRatio;
+        const width = canvas.clientWidth * pixelRatio | 0;
+        const height = canvas.clientHeight * pixelRatio | 0;
+        const needResize = canvas.width !== width || canvas.height !== height;
+        if (needResize) {
+            renderer.setSize(width, height, false);
+        }
+        return needResize;
+    }
+
+    // ---------------------------------------------------------------------
+    // Update the control and redraw 
     update = (time) => {
-        if (resizeRendererToDisplaySize(this.#renderer)) {
+        if (this.resizeRendererToDisplaySize(this.#renderer)) {
             const canvas = this.#renderer.domElement;
             this.#camera.aspect = canvas.clientWidth / canvas.clientHeight;
             this.#camera.updateProjectionMatrix();
@@ -167,15 +183,15 @@ export class RenderCanvas {
 }
 
 
-function resizeRendererToDisplaySize(renderer) {
-    // Resize the render area to accommodate the change of resoultion
-    const canvas = renderer.domElement;
-    const pixelRatio = window.devicePixelRatio;
-    const width = canvas.clientWidth * pixelRatio | 0;
-    const height = canvas.clientHeight * pixelRatio | 0;
-    const needResize = canvas.width !== width || canvas.height !== height;
-    if (needResize) {
-        renderer.setSize(width, height, false);
-    }
-    return needResize;
-}
+//function resizeRendererToDisplaySize(renderer) {
+//    // Resize the render area to accommodate the change of resoultion
+//    const canvas = renderer.domElement;
+//    const pixelRatio = window.devicePixelRatio;
+//    const width = canvas.clientWidth * pixelRatio | 0;
+//    const height = canvas.clientHeight * pixelRatio | 0;
+//    const needResize = canvas.width !== width || canvas.height !== height;
+//    if (needResize) {
+//        renderer.setSize(width, height, false);
+//    }
+//    return needResize;
+//}
