@@ -1,5 +1,7 @@
 
+const testInLocal = true; 
 
+const developerMode = true; 
 
 // ---------------------------------------------------------------------
 // -------------------------- Class definition -----------------------
@@ -66,14 +68,20 @@ export function getMonkeySkullPartsPaths() {
     // Return the path to every parts of the monkey skull. 
     let pathList = [];
     for (let name of _PartsNamesMonkeySkull) {
-        pathList.push(rootPath + modelSubFolder + name);
+        if (testInLocal)
+            pathList.push('.' + modelSubFolder + name);
+        else
+            pathList.push(rootPath + modelSubFolder + name);
     }
     return pathList; 
 }
 
 export function getRockScene00PartsPaths() {
     // Return the path to the rock scene (which has only 1 part)
-    return [rootPath + modelSubFolder + _PartsRockScene00]; 
+    if (testInLocal)
+        return ['.' + modelSubFolder + _PartsRockScene00];
+    else
+        return [rootPath + modelSubFolder + _PartsRockScene00];
 }
 
 export function std135Aov(focalLength) {

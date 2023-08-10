@@ -22,7 +22,7 @@ const useTextures = false;
 const modelToUse = getRockScene00PartsPaths;
 
 // The texture of the main model 
-const textureToUse = MonkeySkullMaps;
+const textureToUse = null;
 
 // ---------------------------------------------------------------------
 // ------------------------------ Functions ----------------------------
@@ -106,13 +106,15 @@ export class RenderCanvas {
         var scope = this; // Store this reference to be used in functions 
 
         const textureLoader = new THREE.TextureLoader();
-        const pbrMaterial = new MeshStandardMaterial({
-            map: textureLoader.load(this.#textureToUse.diffuse),
-            normalMap: textureLoader.load(this.#textureToUse.normal),
-            normalScale: new THREE.Vector2(1, 1),
-            emissiveMap: textureLoader.load(this.#textureToUse.diffuse),
-            emissiveIntensity: .5
-        });
+        var pbrMaterial; 
+        if(useTextures)
+            var pbrMaterial = new MeshStandardMaterial({
+                map: textureLoader.load(this.#textureToUse.diffuse),
+                normalMap: textureLoader.load(this.#textureToUse.normal),
+                normalScale: new THREE.Vector2(1, 1),
+                emissiveMap: textureLoader.load(this.#textureToUse.diffuse),
+                emissiveIntensity: .5
+            });
 
         var modelLoader = null;
         if (this.#useFBX)
@@ -141,8 +143,8 @@ export class RenderCanvas {
     }
 
     // ---------------------------------------------------------------------
+    // Jude if render area needs to be resized and re-rendered 
     resizeRendererToDisplaySize(renderer) {
-        // Resize the render area to accommodate the change of resoultion
         const canvas = renderer.domElement;
         const pixelRatio = window.devicePixelRatio;
         const width = canvas.clientWidth * pixelRatio | 0;
@@ -183,15 +185,3 @@ export class RenderCanvas {
 }
 
 
-//function resizeRendererToDisplaySize(renderer) {
-//    // Resize the render area to accommodate the change of resoultion
-//    const canvas = renderer.domElement;
-//    const pixelRatio = window.devicePixelRatio;
-//    const width = canvas.clientWidth * pixelRatio | 0;
-//    const height = canvas.clientHeight * pixelRatio | 0;
-//    const needResize = canvas.width !== width || canvas.height !== height;
-//    if (needResize) {
-//        renderer.setSize(width, height, false);
-//    }
-//    return needResize;
-//}

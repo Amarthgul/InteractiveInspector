@@ -5,6 +5,12 @@ but took a different implementation and is built specifically for running on bro
 
 ## Dev Log 
 
+* July 9th 
+
+  Modified the file handling and added localhost development support. 
+
+  Run the python script and it should offer a localhost port to test the app.  
+
 * July 7th 
 
   Updated the model and started to load the rock scene. 
