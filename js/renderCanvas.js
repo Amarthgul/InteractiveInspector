@@ -4,7 +4,7 @@ import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader';
 import { CullFaceNone, MeshStandardMaterial } from 'three';
 import {
-    std135Aov, getRockScene00PartsPaths, 
+    std135Aov,  
     getRockScen01MapsPaths, getRockScene01PartsPaths
 } from './globals.js'; 
 
@@ -19,7 +19,7 @@ const useFBX = true;
 const useTextures = false; 
 
 // The main model to be loaded 
-const modelToUse = getRockScene00PartsPaths;
+const modelToUse = null;
 
 // The texture of the main model 
 const textureToUse = null;

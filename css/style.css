@@ -2,7 +2,7 @@
 /* */
 
 :root {
-    --menu-bar-offset: 12%;
+    --menu-bar-offset: 11%;
 }
 
 html, body {
@@ -23,7 +23,7 @@ html, body {
     margin-right: auto;
 }
 
-ul {
+#options {
     list-style-type: none;
     position: absolute;
     margin: 0;
@@ -33,7 +33,7 @@ ul {
     background-color: #dddddd;
 }
  
-li {
+.ddo {
     float: left;
     padding: 2%;
 }

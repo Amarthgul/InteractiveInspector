@@ -55,10 +55,6 @@ const _PartsNamesMonkeySkull = [
     'PartParitalRight.obj'
 ];
 
-const _PartsRockScene00 = [
-    'RockScene_01.fbx'
-];
-
 const _PartsRockScene01 = [
     'RockScene_P00.obj', 
     'RockScene_P01.obj'
@@ -86,14 +82,6 @@ export function getMonkeySkullPartsPaths() {
             pathList.push(rootPath + modelSubFolder + name);
     }
     return pathList; 
-}
-
-export function getRockScene00PartsPaths() {
-    // Return the path to the rock scene (which has only 1 part)
-    if (testInLocal)
-        return ['.' + modelSubFolder + _PartsRockScene00];
-    else
-        return [rootPath + modelSubFolder + _PartsRockScene00];
 }
 
 export function getRockScene01PartsPaths() {
