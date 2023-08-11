@@ -53,11 +53,23 @@ const _PartsNamesMonkeySkull = [
     'PartNasal.obj',
     'PartParitalLeft.obj',
     'PartParitalRight.obj'
-]
+];
 
 const _PartsRockScene00 = [
-    'RockScene_00.fbx'
-]
+    'RockScene_01.fbx'
+];
+
+const _PartsRockScene01 = [
+    'RockScene_P00.obj', 
+    'RockScene_P01.obj'
+];
+
+const _MapsRockScene01 = [
+    'HughesBluff_Pano_JS.JPG',
+    'wd3cciw_2K_Albedo.jpg', 
+    'wd3cciw_2K_Normal_LOD0.jpg', 
+    'wd3cciw_2K_Roughness.jpg'
+]; 
 
 // ---------------------------------------------------------------------
 // ----------------------------- Functions -----------------------------
@@ -83,6 +95,32 @@ export function getRockScene00PartsPaths() {
     else
         return [rootPath + modelSubFolder + _PartsRockScene00];
 }
+
+export function getRockScene01PartsPaths() {
+    // Return the path to the rock scene that consists of 2 parts 
+    let pathList = [];
+    for (let name of _PartsRockScene01) {
+        if (testInLocal)
+            pathList.push('.' + modelSubFolder + name);
+        else
+            pathList.push(rootPath + modelSubFolder + name);
+    }
+    return pathList; 
+}
+
+export function getRockScen01MapsPaths() {
+    let pathList = [];
+    for (let name of _MapsRockScene01) {
+        if (testInLocal)
+            pathList.push('.' + textureMapSubFodler + name);
+        else
+            pathList.push(rootPath + textureMapSubFodler + name);
+    }
+    return pathList; 
+}
+
+// ---------------------------------------------------------------------
+// ------------------------------- MISC --------------------------------
 
 export function std135Aov(focalLength) {
     // Given a focal length in mm, convert focal length into angle of view,
