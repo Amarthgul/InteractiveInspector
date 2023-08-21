@@ -1,4 +1,16 @@
 
+/*
+ * Try not to use direct paths and file names in other script files.
+ * Use this global file to store all the paths and names, so that if 
+ * something changes, this is the only file that need to be checked. 
+ */
+
+/* This toturial set could be of help 
+ * https://github.com/stemkoski/stemkoski.github.com/tree/master/Three.js/js 
+ * */
+
+
+
 const testInLocal = true; 
 
 const developerMode = true; 
@@ -31,13 +43,6 @@ const modelSubFolder = '/public/models/';
 
 const textureMapSubFodler = '/public/textures/';
 
-export const MonkeySkullMaps = new textureSet(
-    rootPath + textureMapSubFodler + 'SkullDiffuse.jpg', 
-    rootPath + textureMapSubFodler + 'SkullNormal.jpg',
-    null, null, null
-);
-
-
 
 // ---------------------------------------------------------------------
 // -------------------------- Implicit variables -----------------------
@@ -55,56 +60,49 @@ const _PartsNamesMonkeySkull = [
     'PartParitalRight.obj'
 ];
 
-const _PartsRockScene01 = [
-    'RockScene_P00.obj', 
-    'RockScene_P01.obj'
+export const RockPartsPaths = [
+    modelPath('RockScene_P00.obj'), 
+    modelPath('RockScene_P01.obj'),
+    modelPath('RockScene_P02.obj')
 ];
 
-const _MapsRockScene01 = [
-    'HughesBluff_Pano_JS.JPG',
-    'wd3cciw_2K_Albedo.jpg', 
-    'wd3cciw_2K_Normal_LOD0.jpg', 
-    'wd3cciw_2K_Roughness.jpg'
-]; 
+export const rockSceneObjNames = {
+    groundRock: 'Aset_nature_rock_S_wd3cciw',
+    background: 'HughesBluff_Pano_JS',
+    rock:   'baked_mesh'
+};
+
+export const rockSceneMaps = {
+    BG:         mapPath('HughesBluff_Pano_JS.JPG'),
+    groundAlb:  mapPath('wd3cciw_2K_Albedo.jpg'), 
+    groundNorm: mapPath('wd3cciw_2K_Normal_LOD0.jpg'), 
+    groundRoug: mapPath('wd3cciw_2K_Roughness.jpg'),
+    rockAlb:    mapPath('baked_mesh_diffuse.png'), 
+    rockNorm:   mapPath('baked_mesh_normal.png')
+}; 
+
+
 
 // ---------------------------------------------------------------------
 // ----------------------------- Functions -----------------------------
 // ---------------------------------------------------------------------
 
 
-export function getMonkeySkullPartsPaths() {
-    // Return the path to every parts of the monkey skull. 
-    let pathList = [];
-    for (let name of _PartsNamesMonkeySkull) {
-        if (testInLocal)
-            pathList.push('.' + modelSubFolder + name);
-        else
-            pathList.push(rootPath + modelSubFolder + name);
-    }
-    return pathList; 
-}
-
-export function getRockScene01PartsPaths() {
+function modelPath(fileName) {
     // Return the path to the rock scene that consists of 2 parts 
-    let pathList = [];
-    for (let name of _PartsRockScene01) {
-        if (testInLocal)
-            pathList.push('.' + modelSubFolder + name);
-        else
-            pathList.push(rootPath + modelSubFolder + name);
-    }
-    return pathList; 
+    if (testInLocal)
+        return ('.' + modelSubFolder + fileName);
+    else
+        return (rootPath + modelSubFolder + fileName);
 }
 
-export function getRockScen01MapsPaths() {
-    let pathList = [];
-    for (let name of _MapsRockScene01) {
-        if (testInLocal)
-            pathList.push('.' + textureMapSubFodler + name);
-        else
-            pathList.push(rootPath + textureMapSubFodler + name);
-    }
-    return pathList; 
+function mapPath(fileName) {
+    
+    if (testInLocal)
+        return ('.' + textureMapSubFodler + fileName);
+    else
+        return (rootPath + textureMapSubFodler + fileName);
+    
 }
 
 // ---------------------------------------------------------------------

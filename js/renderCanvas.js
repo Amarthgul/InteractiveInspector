@@ -4,8 +4,8 @@ import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader';
 import { CullFaceNone, MeshStandardMaterial } from 'three';
 import {
-    std135Aov,  
-    getRockScen01MapsPaths, getRockScene01PartsPaths
+    std135Aov, rockSceneObjNames, 
+    rockSceneMaps, RockPartsPaths
 } from './globals.js'; 
 
 // ---------------------------------------------------------------------
@@ -52,6 +52,8 @@ export class RenderCanvas {
     #modelToUse = null;
     #textureToUse = null;
 
+    #manualMovement = true; 
+
     // ---------------------------------------------------------------------
     // Class constructor 
     constructor(canvasID, parentID) {
@@ -93,16 +95,18 @@ export class RenderCanvas {
         const intensity1 = 1;
         const light1 = new THREE.DirectionalLight(color, intensity1);
         light1.position.set(-1, 2, 4);
-        const intensity2 = 0.75;
+        const intensity2 = 1;
         const light2 = new THREE.DirectionalLight(color, intensity2);
-        light2.position.set(1, -2, -4);
+        light2.position.set(0, 2, 0);
 
         this.#scene.add(light1);
         this.#scene.add(light2); 
     }
 
     // ---------------------------------------------------------------------
-    // Read and load the objects into the scene, no longder used 
+    /* Read and load the objects into the scene
+     * NOTE that this is no longder used and some of the variables here
+     * will have undefined error if invoked */
     loadGeometries() {
         var scope = this; // Store this reference to be used in functions 
 
@@ -157,24 +161,30 @@ export class RenderCanvas {
 
         // Material for the background image plane 
         var pbrMaterialBG = new MeshStandardMaterial({
-            map: textureLoader.load(getRockScen01MapsPaths()[0]),
-            emissiveMap: textureLoader.load(getRockScen01MapsPaths()[0]),
-            emissiveIntensity: 1
+            map: textureLoader.load(rockSceneMaps.BG),
+            emissiveMap: textureLoader.load(rockSceneMaps.BG),
+            emissiveIntensity: 10.0,
         });
 
         // Material for the ground (a rock scaled up) 
         var pbrMaterialGround = new MeshStandardMaterial({
-            map: textureLoader.load(getRockScen01MapsPaths()[1]),
-            normalMap: textureLoader.load(getRockScen01MapsPaths()[2]),
+            map: textureLoader.load(rockSceneMaps.groundAlb),
+            normalMap: textureLoader.load(rockSceneMaps.groundNorm),
+            normalScale: new THREE.Vector2(1, 1),
+        });
+
+        var pbrMaterialRock = new MeshStandardMaterial({
+            map: textureLoader.load(rockSceneMaps.rockAlb),
+            normalMap: textureLoader.load(rockSceneMaps.rockNorm),
             normalScale: new THREE.Vector2(1, 1),
         });
 
         var modelLoader = new OBJLoader();
-        modelLoader.load(getRockScene01PartsPaths()[0], // The background plane 
+        modelLoader.load(RockPartsPaths[0], // The background plane 
             function (obj) {
                 obj.traverse(function (child) {
                     // Find the BG image plane and assign the corresponding material
-                    if (child.isMesh && child.name == 'Plane_Plane.001') {
+                    if (child.isMesh && child.name == rockSceneObjNames.background) {
                         child.material = pbrMaterialBG;
                     }
                 });
@@ -189,10 +199,10 @@ export class RenderCanvas {
         )
 
         modelLoader = new OBJLoader();
-        modelLoader.load(getRockScene01PartsPaths()[1], // The ground rock 
+        modelLoader.load(RockPartsPaths[1], // The ground rock 
             function (obj) {
                 obj.traverse(function (child) {
-                    if (child.isMesh && child.name == 'Aset_nature_rock_S_wd3cciw_00_LOD0') {
+                    if (child.isMesh && child.name == rockSceneObjNames.groundRock) {
                         child.material = pbrMaterialGround;
                     }
                 });
@@ -225,8 +235,13 @@ export class RenderCanvas {
     // ---------------------------------------------------------------------
     // Update the controls, cameras, or the shaders 
     update() {
-        this.#camera.rotation.z = 0;
+
+        var rotation = this.#camera.rotation; 
         
+        this.#camera.position.set(-12, -5, -70);
+        //-12.532438819599603, y: -5.712040425508086, z: -71.42744566067631
+        this.#camera.rotation.set(3, 0, 2);
+        //console.log(this.#camera.rotation);
 
     }
 
@@ -239,10 +254,19 @@ export class RenderCanvas {
             this.#camera.updateProjectionMatrix();
         }
 
-        this.update(); 
+        
 
         requestAnimationFrame(this.redraw); // Context is automatically preserved
-        this.#controls.update();
+
+        // Manual movement rely on hard coded mouse movement detection 
+        if (this.#manualMovement) {
+            this.update(); 
+        } else {
+            this.#controls.update();
+            //console.log(this.#camera.rotation)
+            //console.log(this.#camera.position)
+        }
+
         this.#renderer.render(this.#scene, this.#camera);
     }
 
