@@ -30,6 +30,10 @@ public class StarGazer : MonoBehaviour
         return new Vector2(Screen.width / 2, Screen.height / 2);
     }
 
+    /// <summary>
+    /// Shot a ray and try to get the name of the object
+    /// </summary>
+    /// <returns>Name of the object if hit</returns>
     private string GazerRaytrace()
     {
         string nameOfTapped = null;
@@ -50,4 +54,27 @@ public class StarGazer : MonoBehaviour
 
         return nameOfTapped;
     }
+
+    private string GazerRaytraceLocation()
+    {
+        string nameOfTapped = null;
+
+        RaycastHit hit;
+        Ray ray = meinCamera.ScreenPointToRay(EstimatedGazeDirection());
+
+        if (Physics.Raycast(ray, out hit))
+        {
+            // If the ray hit something
+            nameOfTapped = hit.transform.name;
+        }
+        else
+        {
+            // If the ray hit nothing 
+            nameOfTapped = null;
+        }
+
+        return nameOfTapped;
+    }
+
+
 }
