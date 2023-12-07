@@ -19,12 +19,6 @@ public class InputManager : MonoBehaviour
 
     [SerializeField] private TapHandler tapDetector;
 
-    [Tooltip("UI_HelpFunction class UI toolkit")]
-    [SerializeField] private UI_HelpFunction UIHF;
-
-    [Tooltip("UI_Operations class UI toolkit")]
-    [SerializeField] private UI_Operations UIO; 
-
     private void Awake()
     {
         inputScheme = new UserInput();
@@ -37,11 +31,6 @@ public class InputManager : MonoBehaviour
             inputScheme.iOS.Primary, 
             inputScheme.iOS.Secondary);
 
-        tapDetector.Initialize(inputScheme.iOS.Primary);
-
-        //UIHF.Initialize(inputScheme.iOS.Primary);
-
-        //UIO.Initialize(inputScheme.iOS.Primary);
     }
 
     private void OnEnable()

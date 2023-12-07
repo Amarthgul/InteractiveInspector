@@ -48,6 +48,9 @@ public class CameraControl : MonoBehaviour
     [Header("Basic operation")]
     [Space(5)]
 
+    [Tooltip("Global switch of touch control")]
+    [SerializeField] private bool TouchControl = false; 
+
     [Tooltip("Damping the panning action")]
     [Range(0, 10)]
     [SerializeField] private float cameraPanDamper = 1.0f;
@@ -135,6 +138,9 @@ public class CameraControl : MonoBehaviour
     [Space(15)]
     [Header("Self Animation")]
     [Space(5)]
+
+    [Tooltip("Toggle of self animation.")]
+    [SerializeField] private bool disableSelfIdleAnim = false;
 
     [Tooltip("The amount of time for the starting animation")]
     [SerializeField] private float startAnimationTime = 2f;
@@ -235,7 +241,7 @@ public class CameraControl : MonoBehaviour
 
     // Self-animation
     private float currentSelfAnimeSpeed = 0;
-    private bool disableSelfIdleAnim = false;
+    
 
     // Part of left and right screen becomes unresponsive when UIs are active
     private Vector2 leftRightNullArea = Vector2.zero;
@@ -271,7 +277,10 @@ public class CameraControl : MonoBehaviour
 
         doubleClickSW.Start();
         cameraStateSW.Start();
-        
+
+        // For when running on superior hardware, the framerate might introduce problems
+        // in regard to deltatime
+        Application.targetFrameRate = 60; 
     }
 
     // Start is called before the first frame update
@@ -298,6 +307,12 @@ public class CameraControl : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!TouchControl)
+        {
+            UpdateFreeMovement();
+            return; 
+        }
+
         if (StartupBuffer() && cameraState == Globals.CameraState.Buffer)
             return;
 
@@ -418,7 +433,6 @@ public class CameraControl : MonoBehaviour
 
         // Scoll is used to zoom in and out 
         float mouseS = mouseScroll.ReadValue<Vector2>().y;
-
 
         // Right mouse button move the camera
         if (mouseRMB.ReadValue<float>() == 1f)
