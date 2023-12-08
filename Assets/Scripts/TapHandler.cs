@@ -116,6 +116,9 @@ public class TapHandler : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // Skip this function for current version. 
+        return; 
+
         string nameOfTapped = TapResponse();
         
         if (nameOfTapped != null)

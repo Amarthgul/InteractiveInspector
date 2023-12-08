@@ -9,12 +9,6 @@ public class StarGazer : MonoBehaviour
     /// ==================== Serialized variables ===================== 
     [SerializeField] Camera meinCamera; // Das war ein befehl!
 
-    [Tooltip("The angle at which shall be regarded as inrelevant")]
-    [SerializeField] float angleBound = 90;
-
-    [Tooltip("Rescale the level of confidence between these 2 values")]
-    [SerializeField] Vector2 clampValue = new Vector2 (.5f, 1);
-
     [Tooltip("Possibility of gaze is represented by color")]
     [SerializeField] private bool enableColor;
 
@@ -33,6 +27,8 @@ public class StarGazer : MonoBehaviour
     /// ====================== Private variables ====================== 
 
     private Dictionary<GameObject, float> gazeConfidence = new Dictionary<GameObject, float>();
+
+    private float cameraDiagonalFoV = 41; 
 
     // Start is called before the first frame update
     void Start()
@@ -59,39 +55,76 @@ public class StarGazer : MonoBehaviour
     /// =============================================================== 
 
 
+    /// <summary>
+    /// Calculate the level of confidence given an angle 
+    /// </summary>
+    /// <param name="angle"></param>
+    /// <returns></returns>
     private float ConfidenceFunction(float angle)
     {
-
-        return 1 - (angle / angleBound);
+        return 1 - (angle / cameraDiagonalFoV);
     }
 
-
+    /// <summary>
+    /// Iterate through the listed objects and update their gaze level of confidence.
+    /// If necessary, also change their color sheen (need to have the material). 
+    /// </summary>
     private void IterateConfidenceLevel()
     {
+        // Update the camera diagonal field of view
+        // in case the camera setting changes during the game 
+        UpdateDiagonalFoV(); 
+
+        // Iterate through the listed objects 
         for (int i = 0; i < gazableObjects.Count; i++)
         {
             // Calculate the angle between object and camera view vector 
             Vector3 line = gazableObjects[i].transform.position - meinCamera.transform.position;
             float angle = Vector3.Angle(line, meinCamera.transform.forward);
 
-            // Covert the angle into 
+            // Covert the angle into LoC, also clamp the value to avoid possibility overflow 
             float LoC = ConfidenceFunction(angle); 
-            LoC = (LoC - clampValue.x) / (clampValue.y - clampValue.x);
             LoC = Mathf.Clamp(LoC, 0, 1); 
 
+            // Calculate the color and opacity 
             gazeConfidence[gazableObjects[i]] = LoC;
+            Color sheen = InterpolateFocusColor(LoC);
 
-            if (enableColor)
+            /// =============================================================== 
+            if (enableColor) // Assign the color and opacity if desired 
             {
-                Color sheen = InterpolateFocusColor(LoC);
-                gazableObjects[i].GetComponent<Renderer>().material.SetColor("_Sheen", sheen);
-                gazableObjects[i].GetComponent<Renderer>().material.SetFloat("_Opacity", LoC);
+                RecursionChildColor(gazableObjects[i], sheen, LoC);
             }
         }
-
     }
     
+    /// <summary>
+    /// Recursively enter each object and change its sheen color/opacity. 
+    /// </summary>
+    /// <param name="thisObject">Object to check</param>
+    /// <param name="sheenColor">Goal sheen color</param>
+    /// <param name="LoC">Level of Confidence as opacity</param>
+    private void RecursionChildColor(GameObject thisObject, Color sheenColor, float LoC)
+    {
+        // Keep doing recusion if this child also has child objects
+        if (thisObject.transform.childCount > 0)
+        {
+            for (int i = 0; i < thisObject.transform.childCount; i++)
+                RecursionChildColor(thisObject.transform.GetChild(i).gameObject, sheenColor, LoC);
+        }
+        // Change the color and effect opacity if this is the parent object 
+        else if(thisObject.GetComponent<Renderer>() != null) // If this is the parent object 
+        {
+            thisObject.GetComponent<Renderer>().material.SetColor("_Sheen", sheenColor);
+            thisObject.GetComponent<Renderer>().material.SetFloat("_Opacity", LoC);
+        }
+    }
 
+    /// <summary>
+    /// Interpolate between 2 colors. 
+    /// </summary>
+    /// <param name="LoC">Level of confidence</param>
+    /// <returns>Color interpolated between high and low representations</returns>
     private Color InterpolateFocusColor(float LoC)
     {
         Color color = new Color();
@@ -99,6 +132,18 @@ public class StarGazer : MonoBehaviour
         color = LoC * focusColor + (1 - LoC) * neglectColor; 
 
         return color; 
+    }
+
+    /// <summary>
+    /// Calculate the camera diagonal field of view and update it. 
+    /// </summary>
+    private void UpdateDiagonalFoV()
+    {
+        float vertFoV = meinCamera.fieldOfView;
+        float aspectRatio = meinCamera.pixelWidth / meinCamera.pixelHeight;
+        float horiFoV = vertFoV * aspectRatio;
+
+        cameraDiagonalFoV = Mathf.Sqrt(Mathf.Pow(vertFoV, 2) + Mathf.Pow(horiFoV, 2)); 
     }
 
     /// <summary>
