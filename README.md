@@ -21,15 +21,15 @@ To add objects for the camera to estimate, create a new field in the `Gazable Ob
 drag the object there. **Note that the object need to possess a behavior inherited from the 
 `ObjectBehavior` class**. 
 
-## ObjectBehavior Class
+## ObjectBehavior Interface
 
-The `ObjectBehavior` class has but one function:
+The `ObjectBehavior` interface has but one method:
 
 ```c#
 public void GazeOperation(float LoC);
 ```
 
-As such, any objects and behaviors can be added as long as it inherits from this interface. 
+This is needed as the camera gazer is calling this method to pass the gaze level of confidence. 
 
 ## Behavior definition 
 

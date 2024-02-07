@@ -45,12 +45,13 @@ public class StarGazer : MonoBehaviour
 
 
     /// <summary>
-    /// Calculate the level of confidence given an angle 
+    /// Calculate the level of confidence given an angle.
     /// </summary>
-    /// <param name="angle"></param>
-    /// <returns></returns>
+    /// <param name="angle">Angle between head direction and the object</param>
+    /// <returns>An estimate between [0, 1]</returns>
     private float ConfidenceFunction(float angle)
     {
+        // Change the implementation here if newer algorithm is needed 
         return 1 - (angle / cameraDiagonalFoV);
     }
 
