@@ -10,16 +10,17 @@ The `ViewSelect` is the demo scene.
 
 ## Camera StarGazer 
 
-The `StarGazer.cs` script is the source of the possibility estimation, it will estimate 
-the possibility of each object it receives being gazed upon. The possibility is then sent
-to each object and they will perform actions accordingly. 
+The `StarGazer.cs` script is attached to the camera and is the source of the possibility 
+estimation, it will estimate the possibility of each object it receives being gazed upon. 
+The possibility is then sent to each object and they will perform actions accordingly. 
 
 The level of confidence that an object is being gazed upon is calculated by `ConfidenceFunction()`,
-which enables future algorithms to be implemented easily. 
+which enables future algorithms to be implemented easily without affecting the rest of the
+contents. 
 
 To add objects for the camera to estimate, create a new field in the `Gazable Object` and
-drag the object there. **Note that the object need to possess a behavior inherited from the 
-`ObjectBehavior` class**. 
+drag the object there. **Note that the object need to possess a behavior class that inherited from 
+the `ObjectBehavior` interface**. 
 
 ## ObjectBehavior Interface
 
@@ -41,9 +42,9 @@ level of confidence given.
 
 <hr /> 
 
-## To create a new behavior 
+## To Create a New Behavior 
 
-First, create a new script that inherits from `ObjectBehavior`:
+First, create a new class that inherits from `ObjectBehavior`:
 
 ```c#
 public class YOUR_CLASS_NAME : MonoBehaviour, ObjectBehavior
@@ -52,7 +53,7 @@ public class YOUR_CLASS_NAME : MonoBehaviour, ObjectBehavior
 Inside the class, implement the method:
 
 ```c#
-public void GazeOperation(float LoC) {/* ... */}
+public void GazeOperation(float LoC) {/* DO_YOUR_THING_HERE */}
 ```
 
 Remember `LoC` is the level of confidence sent from the camera gazer. 

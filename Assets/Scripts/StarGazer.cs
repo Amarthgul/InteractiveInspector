@@ -9,6 +9,9 @@ public class StarGazer : MonoBehaviour
     /// ==================== Serialized variables ===================== 
     [SerializeField] Camera meinCamera; // Das war ein befehl!
 
+    [Tooltip("When checked, the level of confidence will be printed in console")]
+    [SerializeField] bool showEstimateInConsole = true; 
+
     [Tooltip("Objects that can interact with the star gazer")]
     [SerializeField] List<GameObject> gazableObjects = new List<GameObject>();
 
@@ -32,9 +35,9 @@ public class StarGazer : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Debug.Log(gazeConfidence);
         IterateConfidenceLevel();
-        PrintCondidenceLevel();
+        if (showEstimateInConsole)
+            PrintCondidenceLevel();
     }
 
 
