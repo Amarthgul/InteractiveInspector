@@ -11,7 +11,7 @@ The `ViewSelect` is the demo scene.
 ## Camera StarGazer 
 
 The `StarGazer.cs` script is attached to the camera and is the source of the possibility 
-estimation, it will estimate the possibility of each object it receives being gazed upon. 
+estimation, it will estimate the possibility of each object being gazed upon. 
 The possibility is then sent to each object and they will perform actions accordingly. 
 
 The level of confidence that an object is being gazed upon is calculated by `ConfidenceFunction()`,
@@ -21,6 +21,10 @@ contents.
 To add objects for the camera to estimate, create a new field in the `Gazable Object` and
 drag the object there. **Note that the object need to possess a behavior class that inherited from 
 the `ObjectBehavior` interface**. 
+
+If there are two cameras in the scene, as is the case for some AR/VR applications, check the 
+`dualCamera` checkbox in the `StarGazer` component, and drag the second camera into the 
+`meinCameraZwei` field. 
 
 ## ObjectBehavior Interface
 

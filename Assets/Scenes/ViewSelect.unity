@@ -832,6 +832,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   meinCamera: {fileID: 963194227}
+  dualCamera: 0
+  meinCameraZwei: {fileID: 0}
   showEstimateInConsole: 0
   gazableObjects:
   - {fileID: 291743567}

@@ -7,10 +7,21 @@ public class StarGazer : MonoBehaviour
 
     /// ===============================================================
     /// ==================== Serialized variables ===================== 
+
+
+    [ShowIf(ActionOnConditionFail.DisableOnly, ConditionOperator.And, nameof(dualCamera))]
     [SerializeField] Camera meinCamera; // Das war ein befehl!
 
+    [Tooltip("When used in VR/AR setup, there might be two cameras. In which case " +
+        "this can be enabled and select two cameras to calculate the view direction. ")]
+    [SerializeField] bool dualCamera;
+
+    [ShowIf(ActionOnConditionFail.DisableOnly, ConditionOperator.And, nameof(dualCamera))]
+    [SerializeField] Camera meinCameraZwei; // Links
+
+
     [Tooltip("When checked, the level of confidence will be printed in console")]
-    [SerializeField] bool showEstimateInConsole = true; 
+    [SerializeField] bool showEstimateInConsole = true;
 
     [Tooltip("Objects that can interact with the star gazer")]
     [SerializeField] List<GameObject> gazableObjects = new List<GameObject>();
@@ -20,7 +31,7 @@ public class StarGazer : MonoBehaviour
 
     private Dictionary<GameObject, float> gazeConfidence = new Dictionary<GameObject, float>();
 
-    private float cameraDiagonalFoV = 41; 
+    private float cameraDiagonalFoV = 41;
 
     // Start is called before the first frame update
     void Start()
@@ -66,18 +77,21 @@ public class StarGazer : MonoBehaviour
     {
         // Update the camera diagonal field of view
         // in case the camera setting changes during the game 
-        UpdateDiagonalFoV(); 
+        UpdateDiagonalFoV();
+
+        Vector3 camPos = CameraPosition();
+        Vector3 camForward = CameraForward(); 
 
         // Iterate through the listed objects 
         for (int i = 0; i < gazableObjects.Count; i++)
         {
             // Calculate the angle between object and camera view vector 
-            Vector3 line = gazableObjects[i].transform.position - meinCamera.transform.position;
-            float angle = Vector3.Angle(line, meinCamera.transform.forward);
+            Vector3 line = gazableObjects[i].transform.position - camPos;
+            float angle = Vector3.Angle(line, camForward);
 
             // Covert the angle into LoC, also clamp the value to avoid possibility overflow 
-            float LoC = ConfidenceFunction(angle); 
-            LoC = Mathf.Clamp(LoC, 0, 1); 
+            float LoC = ConfidenceFunction(angle);
+            LoC = Mathf.Clamp(LoC, 0, 1);
 
             // Calculate the color and opacity 
             gazeConfidence[gazableObjects[i]] = LoC;
@@ -85,8 +99,8 @@ public class StarGazer : MonoBehaviour
             gazableObjects[i].GetComponent<ObjectBehavior>().GazeOperation(LoC);
         }
     }
-    
-    
+
+
 
     /// <summary>
     /// Calculate the camera diagonal field of view and update it. 
@@ -97,7 +111,7 @@ public class StarGazer : MonoBehaviour
         float aspectRatio = meinCamera.pixelWidth / meinCamera.pixelHeight;
         float horiFoV = vertFoV * aspectRatio;
 
-        cameraDiagonalFoV = Mathf.Sqrt(Mathf.Pow(vertFoV, 2) + Mathf.Pow(horiFoV, 2)); 
+        cameraDiagonalFoV = Mathf.Sqrt(Mathf.Pow(vertFoV, 2) + Mathf.Pow(horiFoV, 2));
     }
 
     /// <summary>
@@ -105,7 +119,7 @@ public class StarGazer : MonoBehaviour
     /// </summary>
     private void PrintCondidenceLevel()
     {
-        foreach(KeyValuePair<GameObject, float> kvp in gazeConfidence)
+        foreach (KeyValuePair<GameObject, float> kvp in gazeConfidence)
         {
             Debug.Log(" " + kvp.Key.name + " \t with confidence " + kvp.Value);
         }
@@ -119,6 +133,35 @@ public class StarGazer : MonoBehaviour
     {
         return new Vector2(Screen.width / 2, Screen.height / 2);
     }
+
+    /// <summary>
+    /// Calculate the position of the camera. 
+    /// If dual camera is enabled, average the position of both. 
+    /// </summary>
+    /// <returns>Position of the camera(s)</returns>
+    private Vector3 CameraPosition()
+    {
+        return (
+            dualCamera ?
+            (meinCamera.transform.position + meinCameraZwei.transform.position) / 2.0f :
+            meinCamera.transform.position
+            );
+    }
+
+    /// <summary>
+    /// Calculate the forward vector of the camera. 
+    /// If dual camera is enabled, average the forward vector of both. 
+    /// </summary>
+    /// <returns>Forward vector of the camera(s)</returns>
+    private Vector3 CameraForward()
+    {
+        return (
+            dualCamera ?
+            (meinCamera.transform.forward + meinCameraZwei.transform.forward) / 2.0f :
+            meinCamera.transform.forward
+            );
+    }
+
 
     /// <summary>
     /// Shot a ray and try to get the name of the object
